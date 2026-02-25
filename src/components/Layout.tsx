@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   Navbar,
   NavbarBrand,
@@ -16,12 +16,14 @@ import {
   Mail,
   Menu,
   X,
+  MapPin,
 } from "lucide-react";
 
+
 const navItems = [
-  { name: "Home", href: "/", icon: Home },
+  { name: "Home", href: "/home", icon: Home },
   { name: "User Data", href: "/userdata", icon: Users },
-  { name: "Routes", href: "/routes", icon: Route },
+  { name: "Routes", href: "/routes", icon: MapPin },
   { name: "Statistics", href: "/statistics", icon: BarChart3 },
   { name: "Account", href: "/useraccount", icon: UserCircle },
   { name: "Contact", href: "/contact", icon: Mail },
@@ -33,8 +35,16 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const location = useLocation();
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+
+  const isRouteActive = (href: string, isActive: boolean) => {
+    if (href === "/routes") {
+      return isActive || location.pathname === "/";
+    }
+    return isActive;
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -48,8 +58,8 @@ export default function Layout({ children }: LayoutProps) {
       >
         <NavbarContent justify="start">
           <NavbarBrand>
-            <NavLink to="/" className="font-bold text-inherit text-xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              BC Stats
+            <NavLink to="/" className="flex items-center gap-1 font-bold text-inherit text-xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              <Route size={20} />RStats
             </NavLink>
           </NavbarBrand>
         </NavbarContent>
@@ -61,7 +71,7 @@ export default function Layout({ children }: LayoutProps) {
                 to={item.href}
                 className={({ isActive }) =>
                   `flex items-center gap-2 text-sm font-semibold tracking-wide ${
-                    isActive ? "text-primary" : "text-foreground hover:text-primary"
+                    isRouteActive(item.href, isActive) ? "text-primary" : "text-foreground hover:text-primary"
                   }`
                 }
               >
@@ -102,7 +112,7 @@ export default function Layout({ children }: LayoutProps) {
                 onClick={() => setIsMenuOpen(false)}
                 className={({ isActive }) =>
                   `flex items-center gap-4 px-4 py-3 rounded-lg ${
-                    isActive ? "bg-primary/10 text-primary" : "text-foreground hover:bg-default-100"
+                    isRouteActive(item.href, isActive) ? "bg-primary/10 text-primary" : "text-foreground hover:bg-default-100"
                   }`
                 }
               >

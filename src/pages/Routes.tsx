@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Route, Play, Square, MapPin } from "lucide-react";
+import { Play, Square, MapPin } from "lucide-react";
 import { Button, Card, CardBody } from "@heroui/react";
 import {
   type Position,
@@ -174,7 +174,7 @@ export default function Routes() {
     <div className="max-w-7xl mx-auto">
       <div className="mb-10">
         <div className="flex items-center gap-3 mb-3">
-          <Route size={40} className="text-primary" />
+          <MapPin size={40} className="text-primary" />
           <h1
             className="text-5xl font-bold text-foreground"
             style={{ fontFamily: "'Space Grotesk', sans-serif" }}

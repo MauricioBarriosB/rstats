@@ -14,11 +14,12 @@ function App() {
   return (
     <BrowserRouter basename="/rstats">
       <Layout>
-        <Routes>
-          <Route path="/" element={<Home />} />
+        <Routes> 
+          <Route path="/home" element={<Home />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/login" element={<Login />} />
           <Route path="/userdata" element={<UserData />} />
+          <Route path="/" element={<RoutesPage />} />
           <Route path="/routes" element={<RoutesPage />} />
           <Route path="/statistics" element={<Statistics />} />
           <Route path="/useraccount" element={<UserAccount />} />
