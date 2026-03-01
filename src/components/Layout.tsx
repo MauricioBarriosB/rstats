@@ -7,6 +7,16 @@ import {
   NavbarItem,
   Button,
 } from "@heroui/react";
+
+import {
+  Route,
+  Menu,
+  X,
+  MapPin,
+} from "lucide-react";
+
+/*
+// Update to get navigation pages
 import {
   Home,
   Users,
@@ -19,7 +29,6 @@ import {
   MapPin,
 } from "lucide-react";
 
-
 const navItems = [
   { name: "Home", href: "/home", icon: Home },
   { name: "User Data", href: "/userdata", icon: Users },
@@ -27,6 +36,10 @@ const navItems = [
   { name: "Statistics", href: "/statistics", icon: BarChart3 },
   { name: "Account", href: "/useraccount", icon: UserCircle },
   { name: "Contact", href: "/contact", icon: Mail },
+];
+*/
+const navItems = [
+  { name: "Routes", href: "/routes", icon: MapPin },
 ];
 
 interface LayoutProps {

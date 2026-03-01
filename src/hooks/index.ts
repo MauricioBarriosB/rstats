@@ -1,3 +1,4 @@
 export { useWakeLock } from "./useWakeLock";
-export { useGeolocation } from "./useGeolocation";
 export { useRouteStorage } from "./useRouteStorage";
+export { useGpsTracker } from "./useGpsTracker";
+export type { GeoPoint, TrackingState, UseGpsTrackerOptions } from "./useGpsTracker";

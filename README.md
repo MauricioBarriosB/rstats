@@ -1,73 +1,121 @@
-# React + TypeScript + Vite
+# RStats - GPS Route Tracking App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern GPS route tracking application built with React and TypeScript. Track your journeys with high-precision GPS, save routes locally, and view detailed statistics.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### GPS Route Tracking
+- **Real-time GPS tracking** using the browser's Geolocation API
+- **Hybrid distance calculation** combining GPS speed (Doppler-based) and position data for improved accuracy
+- **3D distance support** - considers altitude changes for accurate distance in hilly terrain
+- **GPS stabilization** - averages multiple readings at start/end points for reliable coordinates
+- **Noise filtering** - filters out erratic heading changes and low-accuracy readings
+- **Configurable thresholds** for accuracy, distance, and time intervals
 
-## React Compiler
+### Smart Distance Calculation
+- Uses GPS speed when available (more accurate when moving)
+- Falls back to position-based calculation when stationary
+- Weighted averaging for discrepancies between speed and position data
+- Altitude-aware calculations using Pythagorean theorem
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Screen Wake Lock
+- Keeps screen awake during active tracking
+- Auto-reacquires wake lock when app returns to foreground
+- Prevents accidental screen timeout during route recording
 
-## Expanding the ESLint configuration
+### Route Management
+- **Save routes** to local storage automatically
+- **View saved routes** with distance, duration, and GPS points
+- **Delete routes** with one-click removal
+- Persistent storage across sessions
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### User Interface
+- Modern, responsive design with HeroUI components
+- Mobile-first approach with hamburger menu
+- Real-time tracking status display
+- GPS accuracy indicator
+- Live coordinate display
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Tech Stack
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- **React 19** - UI framework
+- **TypeScript** - Type safety
+- **Vite** - Build tool and dev server
+- **TailwindCSS 4** - Styling
+- **HeroUI** - UI component library
+- **Framer Motion** - Animations
+- **Geolib** - Geospatial calculations
+- **React Router DOM** - Navigation
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Getting Started
+
+### Prerequisites
+- Node.js 18+
+- npm or yarn
+
+### Installation
+
+```bash
+# Clone the repository
+git clone <repository-url>
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Available Scripts
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run dev      # Start development server
+npm run build    # Build for production
+npm run preview  # Preview production build
+npm run lint     # Run ESLint
 ```
+
+## GPS Tracker Configuration
+
+The GPS tracker hook accepts the following options:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `maxAccuracyThreshold` | 20m | Maximum acceptable GPS accuracy |
+| `stabilizationReadings` | 5 | Readings needed for point stabilization |
+| `minIntervalMs` | 2000ms | Minimum interval between recorded points |
+| `minDistanceBetweenPoints` | 3m | Minimum distance to record new point |
+| `enableHighAccuracy` | true | Request high accuracy GPS |
+| `minSpeedThreshold` | 0.5 m/s | Minimum speed to use speed-based calculation |
+| `maxHeadingChange` | 120° | Maximum heading change before filtering |
+
+## Project Structure
+
+```
+src/
+├── components/       # Reusable UI components
+│   ├── Layout.tsx    # Main layout with navigation
+│   └── SavedRoutes.tsx
+├── helpers/          # Utility functions
+│   ├── RoutesCalculations.ts
+│   └── RoutesStorage.ts
+├── hooks/            # Custom React hooks
+│   ├── useGpsTracker.ts   # GPS tracking logic
+│   ├── useRouteStorage.ts # Local storage management
+│   └── useWakeLock.ts     # Screen wake lock
+├── pages/            # Page components
+│   └── Routes.tsx    # Main tracking page
+└── main.tsx          # App entry point
+```
+
+## Browser Support
+
+- Chrome/Edge 84+ (Wake Lock API)
+- Firefox 79+ (Geolocation)
+- Safari 16.4+ (Wake Lock API)
+
+Note: GPS tracking requires HTTPS in production.
+
+## License
+
+MIT License

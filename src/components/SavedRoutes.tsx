@@ -1,13 +1,14 @@
-import { MapPinPlusInside, MapPin, Clock, Navigation } from "lucide-react";
-import { Card, CardBody, Chip } from "@heroui/react";
+import { MapPinPlusInside, MapPin, Clock, Navigation, Trash2 } from "lucide-react";
+import { Card, CardBody, Chip, Button } from "@heroui/react";
 import { formatDistance, formatDuration } from "../helpers/RoutesCalculations";
 import type { RouteData } from "../helpers/RoutesStorage";
 
 interface SavedRoutesProps {
   readonly routes: RouteData[];
+  readonly onDelete: (id: string) => void;
 }
 
-export default function SavedRoutes({ routes }: Readonly<SavedRoutesProps>) {
+export default function SavedRoutes({ routes, onDelete }: Readonly<SavedRoutesProps>) {
   return (
     <>
       {/* Saved Routes */}
@@ -39,9 +40,21 @@ export default function SavedRoutes({ routes }: Readonly<SavedRoutesProps>) {
                     <MapPinPlusInside size={16} className="text-primary" />
                     <span className="font-medium">ROUTE ADDED</span>
                   </div>
-                  <Chip color="success" variant="flat" size="sm">
-                    Completed
-                  </Chip>
+                  <div className="flex items-center gap-2">
+                    <Chip color="success" variant="flat" size="sm">
+                      Completed
+                    </Chip>
+                    <Button
+                      isIconOnly
+                      size="sm"
+                      variant="light"
+                      color="danger"
+                      onPress={() => onDelete(route.id)}
+                      aria-label="Delete route"
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">

@@ -4,64 +4,67 @@ import { Button, Card, CardBody } from "@heroui/react";
 import {
   formatDistance,
   formatDuration,
-  calculateTotalDistance,
 } from "../helpers/RoutesCalculations";
 import { type RouteData } from "../helpers/RoutesStorage";
 import SavedRoutes from "../components/SavedRoutes";
-import { useWakeLock, useGeolocation, useRouteStorage } from "../hooks";
-
-const TRACKING_INTERVAL = 5000; // 5 seconds
+import { useWakeLock, useGpsTracker, useRouteStorage } from "../hooks";
 
 export default function Routes() {
-  const [currentRoute, setCurrentRoute] = useState<RouteData | null>(null);
+  const [routeStartTime, setRouteStartTime] = useState<string | null>(null);
 
   // Custom hooks
   const wakeLock = useWakeLock();
-  const geolocation = useGeolocation({ interval: TRACKING_INTERVAL });
-  const { routes: savedRoutes, addRoute } = useRouteStorage();
+  const gps = useGpsTracker({
+    maxAccuracyThreshold: 30,
+    stabilizationReadings: 3,
+    minIntervalMs: 2000,
+    minDistanceBetweenPoints: 5,
+  });
+  const { routes: savedRoutes, addRoute, removeRoute } = useRouteStorage();
+
+  const isActive = gps.status === "tracking" || gps.status === "stabilizing";
 
   // Start tracking route
-  const handleStartRoute = async () => {
-    try {
-      await geolocation.startTracking();
-
-      const newRoute: RouteData = {
-        id: Date.now().toString(),
-        startTime: new Date().toISOString(),
-        finishTime: null,
-        positions: [],
-        totalDistance: 0,
-        isCompleted: false,
-      };
-      setCurrentRoute(newRoute);
-      // Request wake lock to keep screen awake
-      await wakeLock.request();
-    } catch {
-      // Error is handled by useGeolocation hook
-    }
+  const handleStartRoute = () => {
+    gps.startTracking();
+    setRouteStartTime(new Date().toISOString());
+    // Request wake lock to keep screen awake
+    wakeLock.request();
   };
 
   // Finish tracking route
   const handleFinishRoute = async () => {
-    const positions = geolocation.stopTracking();
+    await gps.stopTracking();
 
     // Release wake lock
     await wakeLock.release();
 
-    if (currentRoute && positions.length > 0) {
+    if (routeStartTime && gps.trackPoints.length > 0) {
+      // Convert GeoPoints to Position format for storage
+      const positions = gps.trackPoints.map((p) => ({
+        latitude: p.latitude,
+        longitude: p.longitude,
+        accuracy: p.accuracy,
+        timestamp: p.timestamp,
+      }));
+
       const finishedRoute: RouteData = {
-        ...currentRoute,
-        positions,
+        id: Date.now().toString(),
+        startTime: routeStartTime,
         finishTime: new Date().toISOString(),
-        totalDistance: calculateTotalDistance(positions),
+        positions,
+        totalDistance: gps.totalDistanceMeters,
         isCompleted: true,
       };
 
       addRoute(finishedRoute);
     }
 
-    setCurrentRoute(null);
+    setRouteStartTime(null);
+    gps.reset();
   };
+
+  const lastPoint = gps.trackPoints.at(-1);
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -85,22 +88,22 @@ export default function Routes() {
       <div className="flex gap-4 mb-8">
         <Button
           color="success"
-          variant={geolocation.isTracking ? "flat" : "solid"}
+          variant={isActive ? "flat" : "solid"}
           size="lg"
           startContent={<Play size={20} />}
           onPress={handleStartRoute}
-          isDisabled={geolocation.isTracking}
+          isDisabled={isActive}
           className="font-semibold"
         >
           Start Route
         </Button>
         <Button
           color="danger"
-          variant={geolocation.isTracking ? "solid" : "flat"}
+          variant={isActive ? "solid" : "flat"}
           size="lg"
           startContent={<Square size={20} />}
           onPress={handleFinishRoute}
-          isDisabled={!geolocation.isTracking}
+          isDisabled={!isActive}
           className="font-semibold"
         >
           Finish Route
@@ -108,23 +111,23 @@ export default function Routes() {
       </div>
 
       {/* Error Message */}
-      {geolocation.error && (
+      {gps.error && (
         <Card className="mb-6 bg-danger-50 border border-danger-200">
           <CardBody>
-            <p className="text-danger">{geolocation.error}</p>
+            <p className="text-danger">{gps.error}</p>
           </CardBody>
         </Card>
       )}
 
       {/* Current Tracking Status */}
-      {geolocation.isTracking && currentRoute && (
+      {isActive && routeStartTime && (
         <Card className="mb-8 bg-success-50/10 border border-success-200">
           <CardBody className="gap-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-success rounded-full animate-pulse" />
                 <span className="font-semibold text-success">
-                  Tracking in progress...
+                  {gps.statusMessage}
                 </span>
               </div>
               {wakeLock.isActive && (
@@ -138,37 +141,37 @@ export default function Routes() {
               <div className="flex flex-col">
                 <span className="text-sm text-default-500">Duration</span>
                 <span className="text-lg font-semibold">
-                  {formatDuration(currentRoute.startTime, null)}
+                  {formatDuration(routeStartTime, null)}
                 </span>
               </div>
               <div className="flex flex-col">
                 <span className="text-sm text-default-500">Distance</span>
                 <span className="text-lg font-semibold">
-                  {formatDistance(geolocation.totalDistance)}
+                  {formatDistance(gps.totalDistanceMeters)}
                 </span>
               </div>
               <div className="flex flex-col">
                 <span className="text-sm text-default-500">GPS Points</span>
                 <span className="text-lg font-semibold">
-                  {geolocation.positions.length}
+                  {gps.trackPoints.length}
                 </span>
               </div>
-              {geolocation.lastPosition && (
+              {gps.currentAccuracy !== null && (
                 <div className="flex flex-col">
                   <span className="text-sm text-default-500">Accuracy</span>
                   <span className="text-lg font-semibold">
-                    ±{Math.round(geolocation.lastPosition.accuracy)}m
+                    ±{Math.round(gps.currentAccuracy)}m
                   </span>
                 </div>
               )}
             </div>
 
-            {geolocation.lastPosition && (
+            {lastPoint && (
               <div className="flex items-center gap-2 text-sm text-default-500">
                 <MapPin size={14} />
                 <span>
-                  {geolocation.lastPosition.latitude.toFixed(6)},{" "}
-                  {geolocation.lastPosition.longitude.toFixed(6)}
+                  {lastPoint.latitude.toFixed(6)},{" "}
+                  {lastPoint.longitude.toFixed(6)}
                 </span>
               </div>
             )}
@@ -176,7 +179,7 @@ export default function Routes() {
         </Card>
       )}
 
-      <SavedRoutes routes={savedRoutes} />
+      <SavedRoutes routes={savedRoutes} onDelete={removeRoute} />
     </div>
   );
 }
