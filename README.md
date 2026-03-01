@@ -2,7 +2,7 @@
 
 A modern GPS route tracking application built with React and TypeScript. Track your journeys with high-precision GPS, save routes locally, and view detailed statistics.
 
-[https://mauriciobarriosb.github.io/dmeter](https://mauriciobarriosb.github.io/rstats) 
+[https://mauriciobarriosb.github.io/rstats](https://mauriciobarriosb.github.io/rstats) 
 
 ## Features
 
