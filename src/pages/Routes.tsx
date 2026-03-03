@@ -1,6 +1,17 @@
 import { useState } from "react";
 import { Play, Square, MapPin } from "lucide-react";
-import { Button, Card, CardBody } from "@heroui/react";
+import {
+  Button,
+  Card,
+  CardBody,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Input,
+  useDisclosure,
+} from "@heroui/react";
 import {
   formatDistance,
   formatDuration,
@@ -11,6 +22,9 @@ import { useWakeLock, useGpsTracker, useRouteStorage } from "../hooks";
 
 export default function Routes() {
   const [routeStartTime, setRouteStartTime] = useState<string | null>(null);
+  const [routeLabel, setRouteLabel] = useState("");
+  const [pendingLabel, setPendingLabel] = useState("");
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   // Custom hooks
   const wakeLock = useWakeLock();
@@ -24,12 +38,26 @@ export default function Routes() {
 
   const isActive = gps.status === "tracking" || gps.status === "stabilizing";
 
-  // Start tracking route
+  // Open modal to enter journey label
   const handleStartRoute = () => {
+    setPendingLabel("");
+    onOpen();
+  };
+
+  // Start GPS tracking after modal confirmation
+  const handleConfirmStart = () => {
+    setRouteLabel(pendingLabel);
+    onClose();
     gps.startTracking();
     setRouteStartTime(new Date().toISOString());
     // Request wake lock to keep screen awake
     wakeLock.request();
+  };
+
+  // Cancel modal
+  const handleCancelStart = () => {
+    setPendingLabel("");
+    onClose();
   };
 
   // Finish tracking route
@@ -50,6 +78,7 @@ export default function Routes() {
 
       const finishedRoute: RouteData = {
         id: Date.now().toString(),
+        label: routeLabel || undefined,
         startTime: routeStartTime,
         finishTime: new Date().toISOString(),
         positions,
@@ -61,6 +90,7 @@ export default function Routes() {
     }
 
     setRouteStartTime(null);
+    setRouteLabel("");
     gps.reset();
   };
 
@@ -180,6 +210,30 @@ export default function Routes() {
       )}
 
       <SavedRoutes routes={savedRoutes} onDelete={removeRoute} />
+
+      {/* Journey Label Modal */}
+      <Modal isOpen={isOpen} onClose={handleCancelStart} placement="center">
+        <ModalContent>
+          <ModalHeader>Start New Route</ModalHeader>
+          <ModalBody>
+            <Input
+              label="Enter your journey label"
+              placeholder="e.g., Morning commute, Park walk..."
+              value={pendingLabel}
+              onValueChange={setPendingLabel}
+              autoFocus
+            />
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="flat" onPress={handleCancelStart}>
+              Cancel
+            </Button>
+            <Button color="primary" onPress={handleConfirmStart}>
+              OK
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </div>
   );
 }

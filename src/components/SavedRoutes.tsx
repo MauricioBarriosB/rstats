@@ -38,7 +38,9 @@ export default function SavedRoutes({ routes, onDelete }: Readonly<SavedRoutesPr
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <MapPinPlusInside size={16} className="text-primary" />
-                    <span className="font-medium">ROUTE ADDED</span>
+                    <span className="font-medium">
+                      {route.label || "Untitled Route"}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Chip color="success" variant="flat" size="sm">

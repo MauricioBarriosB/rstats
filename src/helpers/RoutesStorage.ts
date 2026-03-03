@@ -4,6 +4,7 @@ export const STORAGE_KEY = "bc_stats_routes";
 
 export interface RouteData {
   id: string;
+  label?: string;
   startTime: string;
   finishTime: string | null;
   positions: Position[];
