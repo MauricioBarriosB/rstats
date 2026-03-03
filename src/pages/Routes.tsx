@@ -25,6 +25,11 @@ export default function Routes() {
   const [routeLabel, setRouteLabel] = useState("");
   const [pendingLabel, setPendingLabel] = useState("");
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const {
+    isOpen: isFinishOpen,
+    onOpen: onFinishOpen,
+    onClose: onFinishClose,
+  } = useDisclosure();
 
   // Custom hooks
   const wakeLock = useWakeLock();
@@ -132,7 +137,7 @@ export default function Routes() {
           variant={isActive ? "solid" : "flat"}
           size="lg"
           startContent={<Square size={20} />}
-          onPress={handleFinishRoute}
+          onPress={onFinishOpen}
           isDisabled={!isActive}
           className="font-semibold"
         >
@@ -230,6 +235,30 @@ export default function Routes() {
             </Button>
             <Button color="primary" onPress={handleConfirmStart}>
               OK
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Finish Route Confirmation Modal */}
+      <Modal isOpen={isFinishOpen} onClose={onFinishClose} placement="center">
+        <ModalContent>
+          <ModalHeader>Finish Route</ModalHeader>
+          <ModalBody>
+            <p>Are you sure you want to stop tracking? This will save your current route.</p>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="flat" onPress={onFinishClose}>
+              Cancel
+            </Button>
+            <Button
+              color="danger"
+              onPress={() => {
+                onFinishClose();
+                handleFinishRoute();
+              }}
+            >
+              Finish Route
             </Button>
           </ModalFooter>
         </ModalContent>
