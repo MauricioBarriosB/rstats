@@ -468,23 +468,48 @@ export function useGpsTracker(options: UseGpsTrackerOptions = {}) {
    */
   const stopTracking = useCallback((): Promise<void> => {
     return new Promise<void>((resolve) => {
-      if (state.status !== "tracking") {
+      // If idle or already finished, nothing to do
+      if (state.status === "idle" || state.status === "finished") {
         resolve();
         return;
       }
 
-      // Start end point stabilization
-      stabilizationBufferRef.current = [];
-      isStabilizingForEndRef.current = true;
-      resolveEndRef.current = resolve;
+      // If still stabilizing for start point, just stop watching
+      if (state.status === "stabilizing" && !isStabilizingForEndRef.current) {
+        stopWatching();
+        setState({
+          status: "idle",
+          startPoint: null,
+          endPoint: null,
+          trackPoints: [],
+          totalDistanceMeters: 0,
+          straightLineDistanceMeters: 0,
+          currentAccuracy: null,
+          statusMessage: "Tracking stopped",
+          error: null,
+        });
+        resolve();
+        return;
+      }
 
-      setState((prev) => ({
-        ...prev,
-        status: "stabilizing",
-        statusMessage: "Stabilizing end point... stay still",
-      }));
+      // If actively tracking, start end point stabilization
+      if (state.status === "tracking") {
+        stabilizationBufferRef.current = [];
+        isStabilizingForEndRef.current = true;
+        resolveEndRef.current = resolve;
+
+        setState((prev) => ({
+          ...prev,
+          status: "stabilizing",
+          statusMessage: "Stabilizing end point... stay still",
+        }));
+        return;
+      }
+
+      // Already stabilizing for end - just wait
+      resolve();
     });
-  }, [state.status]);
+  }, [state.status, stopWatching]);
 
   /**
    * Cancels tracking without recording end point.
