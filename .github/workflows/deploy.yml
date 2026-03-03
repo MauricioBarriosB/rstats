@@ -33,6 +33,12 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          VITE_RSTATS_API_HASH: ${{ secrets.VITE_RSTATS_API_HASH }}
+          VITE_RSTATS_API_KEY: ${{ secrets.VITE_RSTATS_API_KEY }}
+          VITE_RSTATS_API_SALT: ${{ secrets.VITE_RSTATS_API_SALT }}
+          VITE_RSTATS_VALIDATION_HASH: ${{ secrets.VITE_RSTATS_VALIDATION_HASH }}
+          VITE_RSTATS_VALIDATION_PHRASE: ${{ secrets.VITE_RSTATS_VALIDATION_PHRASE }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
