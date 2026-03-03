@@ -1,10 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 
 interface UseWakeLockReturn {
-  isActive: boolean;
-  request: () => Promise<void>;
-  release: () => Promise<void>;
-  isSupported: boolean;
+    isActive: boolean;
+    request: () => Promise<void>;
+    release: () => Promise<void>;
+    isSupported: boolean;
 }
 
 /**
@@ -12,67 +12,67 @@ interface UseWakeLockReturn {
  * Keeps the screen awake while active
  */
 export function useWakeLock(autoReacquire = true): UseWakeLockReturn {
-  const [isActive, setIsActive] = useState(false);
-  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
-  const shouldBeActiveRef = useRef(false); // Track if wake lock should be active
-  const isSupported = "wakeLock" in navigator;
+    const [isActive, setIsActive] = useState(false);
+    const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+    const shouldBeActiveRef = useRef(false); // Track if wake lock should be active
+    const isSupported = "wakeLock" in navigator;
 
-  const request = useCallback(async () => {
-    if (!isSupported) {
-      console.log("Wake Lock API not supported");
-      return;
-    }
+    const request = useCallback(async () => {
+        if (!isSupported) {
+            console.log("Wake Lock API not supported");
+            return;
+        }
 
-    try {
-      wakeLockRef.current = await navigator.wakeLock.request("screen");
-      shouldBeActiveRef.current = true;
-      setIsActive(true);
-      console.log("Wake Lock acquired");
+        try {
+            wakeLockRef.current = await navigator.wakeLock.request("screen");
+            shouldBeActiveRef.current = true;
+            setIsActive(true);
+            console.log("Wake Lock acquired");
 
-      wakeLockRef.current.addEventListener("release", () => {
-        setIsActive(false);
-        console.log("Wake Lock released");
-      });
-    } catch (err) {
-      console.error("Failed to acquire Wake Lock:", err);
-    }
-  }, [isSupported]);
+            wakeLockRef.current.addEventListener("release", () => {
+                setIsActive(false);
+                console.log("Wake Lock released");
+            });
+        } catch (err) {
+            console.error("Failed to acquire Wake Lock:", err);
+        }
+    }, [isSupported]);
 
-  const release = useCallback(async () => {
-    shouldBeActiveRef.current = false;
-    if (wakeLockRef.current) {
-      await wakeLockRef.current.release();
-      wakeLockRef.current = null;
-      setIsActive(false);
-    }
-  }, []);
+    const release = useCallback(async () => {
+        shouldBeActiveRef.current = false;
+        if (wakeLockRef.current) {
+            await wakeLockRef.current.release();
+            wakeLockRef.current = null;
+            setIsActive(false);
+        }
+    }, []);
 
-  // Re-acquire wake lock when page becomes visible (if autoReacquire is enabled)
-  useEffect(() => {
-    if (!autoReacquire) return;
+    // Re-acquire wake lock when page becomes visible (if autoReacquire is enabled)
+    useEffect(() => {
+        if (!autoReacquire) return;
 
-    const handleVisibilityChange = async () => {
-      // Re-acquire if wake lock should be active but was released due to visibility change
-      if (shouldBeActiveRef.current && document.visibilityState === "visible" && !wakeLockRef.current) {
-        await request();
-      }
-    };
+        const handleVisibilityChange = async () => {
+            // Re-acquire if wake lock should be active but was released due to visibility change
+            if (shouldBeActiveRef.current && document.visibilityState === "visible" && !wakeLockRef.current) {
+                await request();
+            }
+        };
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [autoReacquire, request]);
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        return () => {
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+        };
+    }, [autoReacquire, request]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      shouldBeActiveRef.current = false;
-      if (wakeLockRef.current) {
-        wakeLockRef.current.release();
-      }
-    };
-  }, []);
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            shouldBeActiveRef.current = false;
+            if (wakeLockRef.current) {
+                wakeLockRef.current.release();
+            }
+        };
+    }, []);
 
-  return { isActive, request, release, isSupported };
+    return { isActive, request, release, isSupported };
 }

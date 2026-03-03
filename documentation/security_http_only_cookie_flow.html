@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flujo Paso a Paso — Cookie HttpOnly + credentials: include</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0e17;
+            --surface: #111827;
+            --surface-2: #162032;
+            --surface-3: #1c2842;
+            --border: #1e2d45;
+            --border-glow: #2a4060;
+            --text: #e2e8f0;
+            --text-dim: #8899b0;
+            --text-muted: #556677;
+            --cyan: #22d3ee;
+            --blue: #3b82f6;
+            --green: #10b981;
+            --green-dim: #065f46;
+            --orange: #f59e0b;
+            --red: #ef4444;
+            --purple: #a78bfa;
+            --pink: #f472b6;
+            --yellow: #fbbf24;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .bg-pattern {
+            position: fixed;
+            inset: 0;
+            background-image:
+                radial-gradient(rgba(34, 211, 238, 0.03) 1px, transparent 1px),
+                radial-gradient(rgba(59, 130, 246, 0.02) 1px, transparent 1px);
+            background-size: 32px 32px, 48px 48px;
+            background-position: 0 0, 16px 16px;
+            pointer-events: none;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 48px 24px 80px;
+        }
+
+        /* ===== HEADER ===== */
+        header {
+            text-align: center;
+            margin-bottom: 64px;
+        }
+
+        header h1 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.4rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--cyan), var(--blue), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        header p {
+            color: var(--text-dim);
+            font-size: 0.88rem;
+        }
+
+        /* ===== PHASE ===== */
+        .phase {
+            margin-bottom: 64px;
+            position: relative;
+        }
+
+        .phase-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .phase-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            padding: 6px 14px;
+            border-radius: 6px;
+            white-space: nowrap;
+        }
+
+        .phase-badge.login { background: rgba(16, 185, 129, 0.12); color: var(--green); border: 1px solid rgba(16, 185, 129, 0.25); }
+        .phase-badge.request { background: rgba(59, 130, 246, 0.12); color: var(--blue); border: 1px solid rgba(59, 130, 246, 0.25); }
+        .phase-badge.danger { background: rgba(239, 68, 68, 0.1); color: var(--red); border: 1px solid rgba(239, 68, 68, 0.2); }
+
+        .phase-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+
+        .phase-line {
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, var(--border-glow), transparent);
+        }
+
+        /* ===== FLOW TIMELINE ===== */
+        .timeline {
+            position: relative;
+            padding-left: 0;
+        }
+
+        /* Three columns: Frontend | Arrow | Backend */
+        .flow-step {
+            display: grid;
+            grid-template-columns: 1fr 120px 1fr;
+            gap: 0;
+            margin-bottom: 8px;
+            min-height: 80px;
+            align-items: center;
+        }
+
+        /* Actor columns */
+        .actor-col {
+            padding: 16px 20px;
+            border-radius: 10px;
+            min-height: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .actor-col.frontend {
+            background: var(--surface);
+            border: 1px solid var(--border);
+        }
+
+        .actor-col.backend {
+            background: var(--surface);
+            border: 1px solid var(--border);
+        }
+
+        .actor-col.browser {
+            background: rgba(245, 158, 11, 0.06);
+            border: 1px solid rgba(245, 158, 11, 0.15);
+        }
+
+        .actor-col.empty {
+            background: transparent;
+            border: 1px dashed rgba(30, 45, 69, 0.5);
+            min-height: 60px;
+        }
+
+        .actor-col .label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 6px;
+        }
+
+        .actor-col.frontend .label { color: var(--blue); }
+        .actor-col.backend .label { color: var(--green); }
+        .actor-col.browser .label { color: var(--orange); }
+
+        .actor-col .content {
+            font-size: 0.78rem;
+            color: var(--text-dim);
+            line-height: 1.6;
+        }
+
+        .actor-col .content strong {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        /* Code snippets inside actor */
+        .mini-code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin-top: 8px;
+            line-height: 1.7;
+            overflow-x: auto;
+            white-space: pre;
+        }
+
+        .mini-code .kw { color: #c792ea; }
+        .mini-code .str { color: #c3e88d; }
+        .mini-code .fn { color: #82aaff; }
+        .mini-code .cm { color: #546e7a; }
+        .mini-code .pr { color: #80cbc4; }
+        .mini-code .op { color: #89ddff; }
+        .mini-code .num { color: #f78c6c; }
+        .mini-code .vr { color: #eeffff; }
+        .mini-code .ty { color: #ffcb6b; }
+
+        /* Arrow column */
+        .arrow-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 8px 0;
+        }
+
+        .arrow-bar {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            position: relative;
+        }
+
+        .arrow-line-h {
+            flex: 1;
+            height: 2px;
+        }
+
+        .arrow-line-h.right {
+            background: linear-gradient(90deg, rgba(34, 211, 238, 0.3), var(--cyan));
+        }
+
+        .arrow-line-h.left {
+            background: linear-gradient(270deg, rgba(34, 211, 238, 0.3), var(--cyan));
+        }
+
+        .arrow-line-h.right-green {
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.3), var(--green));
+        }
+
+        .arrow-line-h.left-green {
+            background: linear-gradient(270deg, rgba(16, 185, 129, 0.3), var(--green));
+        }
+
+        .arrow-line-h.right-orange {
+            background: linear-gradient(90deg, rgba(245, 158, 11, 0.3), var(--orange));
+        }
+
+        .arrow-line-h.left-orange {
+            background: linear-gradient(270deg, rgba(245, 158, 11, 0.3), var(--orange));
+        }
+
+        .arrow-line-h.right-red {
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.3), var(--red));
+        }
+
+        .arrow-tip {
+            width: 0; height: 0;
+            border-style: solid;
+            flex-shrink: 0;
+        }
+
+        .arrow-tip.right { border-width: 5px 0 5px 8px; border-color: transparent transparent transparent var(--cyan); }
+        .arrow-tip.left { border-width: 5px 8px 5px 0; border-color: transparent var(--cyan) transparent transparent; }
+        .arrow-tip.right-green { border-width: 5px 0 5px 8px; border-color: transparent transparent transparent var(--green); }
+        .arrow-tip.left-green { border-width: 5px 8px 5px 0; border-color: transparent var(--green) transparent transparent; }
+        .arrow-tip.right-orange { border-width: 5px 0 5px 8px; border-color: transparent transparent transparent var(--orange); }
+        .arrow-tip.left-orange { border-width: 5px 8px 5px 0; border-color: transparent var(--orange) transparent transparent; }
+        .arrow-tip.right-red { border-width: 5px 0 5px 8px; border-color: transparent transparent transparent var(--red); }
+
+        .arrow-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.58rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 4px;
+            line-height: 1.4;
+            white-space: nowrap;
+        }
+
+        .arrow-text.green { color: rgba(16, 185, 129, 0.7); }
+        .arrow-text.orange { color: rgba(245, 158, 11, 0.7); }
+        .arrow-text.red { color: rgba(239, 68, 68, 0.7); }
+
+        /* Step number */
+        .step-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            font-weight: 700;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 4px;
+        }
+
+        .step-num.green { background: rgba(16, 185, 129, 0.15); color: var(--green); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .step-num.blue { background: rgba(59, 130, 246, 0.15); color: var(--blue); border: 1px solid rgba(59, 130, 246, 0.3); }
+        .step-num.orange { background: rgba(245, 158, 11, 0.15); color: var(--orange); border: 1px solid rgba(245, 158, 11, 0.3); }
+        .step-num.red { background: rgba(239, 68, 68, 0.15); color: var(--red); border: 1px solid rgba(239, 68, 68, 0.3); }
+
+        /* Callout boxes */
+        .callout {
+            display: flex;
+            gap: 12px;
+            padding: 14px 18px;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            line-height: 1.6;
+            margin: 16px 0;
+        }
+
+        .callout.key {
+            background: rgba(34, 211, 238, 0.06);
+            border: 1px solid rgba(34, 211, 238, 0.15);
+            color: var(--text-dim);
+        }
+
+        .callout.warn {
+            background: rgba(245, 158, 11, 0.06);
+            border: 1px solid rgba(245, 158, 11, 0.15);
+            color: var(--text-dim);
+        }
+
+        .callout.success {
+            background: rgba(16, 185, 129, 0.06);
+            border: 1px solid rgba(16, 185, 129, 0.15);
+            color: var(--text-dim);
+        }
+
+        .callout.danger {
+            background: rgba(239, 68, 68, 0.06);
+            border: 1px solid rgba(239, 68, 68, 0.12);
+            color: var(--text-dim);
+        }
+
+        .callout .icon { font-size: 1rem; flex-shrink: 0; }
+
+        .callout code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            background: rgba(255, 255, 255, 0.06);
+            padding: 1px 6px;
+            border-radius: 3px;
+        }
+
+        /* Column labels header */
+        .columns-header {
+            display: grid;
+            grid-template-columns: 1fr 120px 1fr;
+            gap: 0;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .col-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .col-label.fe { background: rgba(59, 130, 246, 0.08); color: var(--blue); border: 1px solid rgba(59, 130, 246, 0.15); }
+        .col-label.net { background: rgba(34, 211, 238, 0.06); color: var(--cyan); border: 1px solid rgba(34, 211, 238, 0.1); }
+        .col-label.be { background: rgba(16, 185, 129, 0.08); color: var(--green); border: 1px solid rgba(16, 185, 129, 0.15); }
+
+        /* Separator between phases */
+        .phase-separator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 0;
+        }
+
+        .sep-line {
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .sep-icon {
+            font-size: 1.2rem;
+            margin: 0 16px;
+        }
+
+        /* Comparison grid */
+        .compare-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .compare-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .compare-card.bad { border-color: rgba(239, 68, 68, 0.2); }
+        .compare-card.good { border-color: rgba(16, 185, 129, 0.2); }
+
+        .compare-card h4 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .compare-card.bad h4 { color: var(--red); }
+        .compare-card.good h4 { color: var(--green); }
+
+        .compare-card p {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            line-height: 1.6;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .flow-step { grid-template-columns: 1fr; gap: 8px; }
+            .arrow-col { flex-direction: row; padding: 4px 0; }
+            .arrow-bar { flex-direction: column; height: 30px; width: auto; }
+            .arrow-line-h { width: 2px; height: 100%; }
+            .columns-header { display: none; }
+            .compare-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+    <div class="container">
+
+        <header>
+            <h1>// Flujo Paso a Paso</h1>
+            <p>Cómo funciona <code style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;background:rgba(59,130,246,0.12);padding:2px 8px;border-radius:4px;color:var(--cyan);">credentials: 'include'</code> con Cookie HttpOnly</p>
+        </header>
+
+        <!-- ============================================ -->
+        <!-- PHASE 1: LOGIN                               -->
+        <!-- ============================================ -->
+        <div class="phase">
+            <div class="phase-header">
+                <div class="phase-badge login">Fase 1</div>
+                <div class="phase-title">Login — Obtener la Cookie</div>
+                <div class="phase-line"></div>
+            </div>
+
+            <div class="columns-header">
+                <div class="col-label fe">⚛ Frontend (React)</div>
+                <div class="col-label net">↔ Red</div>
+                <div class="col-label be">⟐ Backend (CodeIgniter 4)</div>
+            </div>
+
+            <!-- Step 1 -->
+            <div class="flow-step">
+                <div class="actor-col frontend">
+                    <div class="step-num green">1</div>
+                    <div class="label">Frontend — Tu Código</div>
+                    <div class="content">
+                        <strong>Usuario escribe email y password</strong> en el formulario de login y presiona "Ingresar"
+                    </div>
+                    <div class="mini-code"><span class="kw">const</span> <span class="vr">res</span> = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'https://tu-servidor.com/auth/login'</span>, {
+  <span class="pr">method</span>: <span class="str">'POST'</span>,
+  <span class="pr">credentials</span>: <span class="str">'include'</span>,
+  <span class="pr">headers</span>: { <span class="str">'Content-Type'</span>: <span class="str">'application/json'</span> },
+  <span class="pr">body</span>: <span class="ty">JSON</span>.<span class="fn">stringify</span>({ <span class="vr">email</span>, <span class="vr">password</span> }),
+});</div>
+                </div>
+                <div class="arrow-col">
+                    <div class="arrow-bar">
+                        <div class="arrow-line-h right"></div>
+                        <div class="arrow-tip right"></div>
+                    </div>
+                    <div class="arrow-text">POST /auth/login<br>{ email, password }</div>
+                </div>
+                <div class="actor-col empty"></div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="flow-step">
+                <div class="actor-col empty"></div>
+                <div class="arrow-col"></div>
+                <div class="actor-col backend">
+                    <div class="step-num green">2</div>
+                    <div class="label">Backend — Auth Controller</div>
+                    <div class="content">
+                        <strong>Busca el usuario en la DB</strong> y verifica el password con bcrypt
+                    </div>
+                    <div class="mini-code"><span class="vr">$user</span> = <span class="vr">$userModel</span>-><span class="fn">where</span>(<span class="str">'email'</span>, <span class="vr">$email</span>)-><span class="fn">first</span>();
+
+<span class="kw">if</span> (!<span class="vr">$user</span> || !<span class="fn">password_verify</span>(<span class="vr">$password</span>, <span class="vr">$user</span>[<span class="str">'password'</span>])) {
+    <span class="kw">return</span> <span class="num">401</span>; <span class="cm">// Credenciales inválidas</span>
+}</div>
+                </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="flow-step">
+                <div class="actor-col empty"></div>
+                <div class="arrow-col"></div>
+                <div class="actor-col backend">
+                    <div class="step-num green">3</div>
+                    <div class="label">Backend — Genera JWT</div>
+                    <div class="content">
+                        <strong>Crea un token JWT</strong> con el ID, nombre y rol del usuario, firmado con JWT_SECRET del servidor
+                    </div>
+                    <div class="mini-code"><span class="vr">$payload</span> = [
+    <span class="str">'sub'</span>  => <span class="vr">$user</span>[<span class="str">'id'</span>],    <span class="cm">// quién es</span>
+    <span class="str">'role'</span> => <span class="vr">$user</span>[<span class="str">'role'</span>],  <span class="cm">// qué puede hacer</span>
+    <span class="str">'exp'</span>  => <span class="fn">time</span>() + <span class="num">3600</span>, <span class="cm">// cuándo expira</span>
+];
+<span class="vr">$jwt</span> = <span class="ty">JWT</span>::<span class="fn">encode</span>(<span class="vr">$payload</span>, <span class="vr">$key</span>, <span class="str">'HS256'</span>);</div>
+                </div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="flow-step">
+                <div class="actor-col empty"></div>
+                <div class="arrow-col"></div>
+                <div class="actor-col backend">
+                    <div class="step-num green">4</div>
+                    <div class="label">Backend — Set-Cookie</div>
+                    <div class="content">
+                        <strong>Empaqueta el JWT dentro de una cookie HttpOnly</strong> y la incluye en los headers de la respuesta HTTP
+                    </div>
+                    <div class="mini-code"><span class="vr">$this</span>-><span class="pr">response</span>-><span class="fn">setCookie</span>([
+    <span class="str">'name'</span>     => <span class="str">'auth_token'</span>,
+    <span class="str">'value'</span>    => <span class="vr">$jwt</span>,         <span class="cm">// el JWT va AQUÍ</span>
+    <span class="str">'httponly'</span>  => <span class="kw">true</span>,        <span class="cm">// ⛔ JS no puede leerla</span>
+    <span class="str">'secure'</span>   => <span class="kw">true</span>,        <span class="cm">// 🔒 solo HTTPS</span>
+    <span class="str">'samesite'</span> => <span class="str">'None'</span>,      <span class="cm">// 🌐 cross-site</span>
+]);</div>
+                </div>
+            </div>
+
+            <!-- Step 5 - Response comes back -->
+            <div class="flow-step">
+                <div class="actor-col browser">
+                    <div class="step-num orange">5</div>
+                    <div class="label">Navegador — Automático</div>
+                    <div class="content">
+                        <strong>El NAVEGADOR (no tu código)</strong> lee el header <code style="font-family:'JetBrains Mono',monospace;font-size:0.68rem;">Set-Cookie</code> y guarda la cookie internamente en su almacén privado.
+                        <br><br>
+                        Tu JavaScript <strong>NO puede ver esta cookie</strong>. No está en localStorage, no está en ninguna variable, no aparece en <code style="font-family:'JetBrains Mono',monospace;font-size:0.68rem;">document.cookie</code>.
+                    </div>
+                </div>
+                <div class="arrow-col">
+                    <div class="arrow-bar">
+                        <div class="arrow-tip left-green"></div>
+                        <div class="arrow-line-h left-green"></div>
+                    </div>
+                    <div class="arrow-text green">Response HTTP 200<br>+ Header: Set-Cookie</div>
+                </div>
+                <div class="actor-col empty"></div>
+            </div>
+
+            <div class="callout key">
+                <span class="icon">🔑</span>
+                <div><strong>Punto clave:</strong> El JWT viaja del backend al navegador como un header HTTP (<code>Set-Cookie</code>), NO como dato JSON. Tu código React solo recibe <code>{ message: "Login exitoso", user: {...} }</code>. La cookie la maneja el navegador de forma completamente invisible.</div>
+            </div>
+        </div>
+
+        <!-- SEPARATOR -->
+        <div class="phase-separator">
+            <div class="sep-line"></div>
+            <div class="sep-icon">🍪</div>
+            <div class="sep-line"></div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- PHASE 2: API REQUEST                          -->
+        <!-- ============================================ -->
+        <div class="phase">
+            <div class="phase-header">
+                <div class="phase-badge request">Fase 2</div>
+                <div class="phase-title">Request a la API — La Cookie Viaja Sola</div>
+                <div class="phase-line"></div>
+            </div>
+
+            <div class="columns-header">
+                <div class="col-label fe">⚛ Frontend (React)</div>
+                <div class="col-label net">↔ Red</div>
+                <div class="col-label be">⟐ Backend (CodeIgniter 4)</div>
+            </div>
+
+            <!-- Step 6 -->
+            <div class="flow-step">
+                <div class="actor-col frontend">
+                    <div class="step-num blue">6</div>
+                    <div class="label">Frontend — Tu Código</div>
+                    <div class="content">
+                        <strong>Llamas a la API normalmente.</strong> No envías tokens, ni headers de auth, ni credenciales. Solo <code style="font-family:'JetBrains Mono',monospace;font-size:0.68rem;">credentials: 'include'</code>.
+                    </div>
+                    <div class="mini-code"><span class="cm">// Esto es TODO lo que escribes</span>
+<span class="kw">const</span> <span class="vr">data</span> = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'https://tu-servidor.com/proxy/items'</span>, {
+  <span class="pr">credentials</span>: <span class="str">'include'</span>,  <span class="cm">// ← le dice al NAVEGADOR</span>
+});                         <span class="cm">//   "adjunta tus cookies"</span></div>
+                </div>
+                <div class="arrow-col"></div>
+                <div class="actor-col empty"></div>
+            </div>
+
+            <!-- Step 7 -->
+            <div class="flow-step">
+                <div class="actor-col browser">
+                    <div class="step-num orange">7</div>
+                    <div class="label">Navegador — Automático</div>
+                    <div class="content">
+                        Al ver <code style="font-family:'JetBrains Mono',monospace;font-size:0.68rem;">credentials: 'include'</code>, el navegador busca en su almacén de cookies, encuentra <code style="font-family:'JetBrains Mono',monospace;font-size:0.68rem;">auth_token</code> para ese dominio y <strong>la adjunta automáticamente</strong> al request HTTP.
+                    </div>
+                    <div class="mini-code"><span class="cm">// Lo que el NAVEGADOR construye internamente:</span>
+<span class="pr">GET</span> /proxy/items <span class="pr">HTTP/1.1</span>
+<span class="pr">Host</span>: tu-servidor.com
+<span class="pr">Cookie</span>: auth_token=eyJhbGciOiJIUzI1NiJ9...  <span class="cm">← AUTOMÁTICO</span>
+<span class="pr">Origin</span>: https://tuusuario.github.io</div>
+                </div>
+                <div class="arrow-col">
+                    <div class="arrow-bar">
+                        <div class="arrow-line-h right-orange"></div>
+                        <div class="arrow-tip right-orange"></div>
+                    </div>
+                    <div class="arrow-text orange">GET /proxy/items<br>+ Cookie: auth_token=JWT</div>
+                </div>
+                <div class="actor-col empty"></div>
+            </div>
+
+            <div class="callout warn">
+                <span class="icon">⚠️</span>
+                <div><strong><code>credentials: 'include'</code> NO pasa credenciales.</strong> Es una instrucción que dice "navegador, tienes permiso de enviar tus cookies". Sin esta línea, el navegador NO envía cookies en peticiones cross-origin (distinto dominio) — es una protección de seguridad del navegador.</div>
+            </div>
+
+            <!-- Step 8 -->
+            <div class="flow-step">
+                <div class="actor-col empty"></div>
+                <div class="arrow-col"></div>
+                <div class="actor-col backend">
+                    <div class="step-num blue">8</div>
+                    <div class="label">Backend — Filtro CORS</div>
+                    <div class="content">
+                        <strong>Verifica que el Origin</strong> sea <code style="font-family:'JetBrains Mono',monospace;font-size:0.68rem;">https://tuusuario.github.io</code>. Si no coincide → 403.
+                    </div>
+                    <div class="mini-code"><span class="vr">$origin</span> = <span class="vr">$request</span>-><span class="fn">getHeaderLine</span>(<span class="str">'Origin'</span>);
+<span class="kw">if</span> (<span class="vr">$origin</span> !== <span class="fn">getenv</span>(<span class="str">'ALLOWED_ORIGIN'</span>)) {
+    <span class="kw">return</span> <span class="num">403</span>; <span class="cm">// Origen no permitido</span>
+}</div>
+                </div>
+            </div>
+
+            <!-- Step 9 -->
+            <div class="flow-step">
+                <div class="actor-col empty"></div>
+                <div class="arrow-col"></div>
+                <div class="actor-col backend">
+                    <div class="step-num blue">9</div>
+                    <div class="label">Backend — Filtro AuthJWT</div>
+                    <div class="content">
+                        <strong>Extrae el JWT de la cookie</strong>, verifica la firma con JWT_SECRET, comprueba que no esté expirado y que el usuario esté activo.
+                    </div>
+                    <div class="mini-code"><span class="vr">$token</span>   = <span class="vr">$request</span>-><span class="fn">getCookie</span>(<span class="str">'auth_token'</span>);
+<span class="vr">$decoded</span> = <span class="ty">JWT</span>::<span class="fn">decode</span>(<span class="vr">$token</span>, <span class="kw">new</span> <span class="ty">Key</span>(<span class="vr">$key</span>, <span class="str">'HS256'</span>));
+<span class="cm">// $decoded->sub  = 1       (ID usuario)</span>
+<span class="cm">// $decoded->role = "admin" (permisos)</span></div>
+                </div>
+            </div>
+
+            <!-- Step 10 -->
+            <div class="flow-step">
+                <div class="actor-col empty"></div>
+                <div class="arrow-col"></div>
+                <div class="actor-col backend">
+                    <div class="step-num blue">10</div>
+                    <div class="label">Backend — Proxy Controller</div>
+                    <div class="content">
+                        <strong>Verifica el rol del usuario</strong>, luego llama a la API externa con la API_KEY privada que solo el servidor conoce.
+                    </div>
+                    <div class="mini-code"><span class="cm">// La API_KEY nunca sale del servidor</span>
+<span class="vr">$response</span> = <span class="vr">$client</span>-><span class="fn">get</span>(<span class="vr">$this</span>-><span class="pr">apiUrl</span> . <span class="str">'/items'</span>, [
+    <span class="str">'headers'</span> => [
+        <span class="str">'Authorization'</span> => <span class="str">'Bearer '</span> . <span class="vr">$this</span>-><span class="pr">apiKey</span>,
+    ],
+]);</div>
+                </div>
+            </div>
+
+            <!-- Step 11 - Response -->
+            <div class="flow-step">
+                <div class="actor-col frontend">
+                    <div class="step-num blue">11</div>
+                    <div class="label">Frontend — Recibe Datos</div>
+                    <div class="content">
+                        <strong>Tu código recibe la respuesta JSON</strong> con los datos. En ningún momento tu JavaScript vio, tocó o manipuló el JWT ni la API_KEY.
+                    </div>
+                    <div class="mini-code"><span class="kw">const</span> <span class="vr">items</span> = <span class="kw">await</span> <span class="vr">data</span>.<span class="fn">json</span>();
+<span class="cm">// [{ id: 1, name: "Item 1" }, ...]</span>
+<span class="cm">// ✅ Datos listos — sin haber tocado credenciales</span></div>
+                </div>
+                <div class="arrow-col">
+                    <div class="arrow-bar">
+                        <div class="arrow-tip left-green"></div>
+                        <div class="arrow-line-h left-green"></div>
+                    </div>
+                    <div class="arrow-text green">Response 200<br>{ data: [...] }</div>
+                </div>
+                <div class="actor-col empty"></div>
+            </div>
+
+            <div class="callout success">
+                <span class="icon">✅</span>
+                <div><strong>Resultado:</strong> Tu frontend obtuvo los datos de la API externa sin conocer ni la API_KEY ni el JWT. Las credenciales viajaron de forma invisible entre el navegador y tu servidor Apache.</div>
+            </div>
+        </div>
+
+        <!-- SEPARATOR -->
+        <div class="phase-separator">
+            <div class="sep-line"></div>
+            <div class="sep-icon">🛡</div>
+            <div class="sep-line"></div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- PHASE 3: WHAT HAPPENS WITHOUT                -->
+        <!-- ============================================ -->
+        <div class="phase">
+            <div class="phase-header">
+                <div class="phase-badge danger">Fase 3</div>
+                <div class="phase-title">¿Qué pasa sin login? — Atacante con Postman</div>
+                <div class="phase-line"></div>
+            </div>
+
+            <div class="columns-header">
+                <div class="col-label fe" style="color:var(--red);border-color:rgba(239,68,68,0.15);background:rgba(239,68,68,0.06);">🔓 Atacante</div>
+                <div class="col-label net">↔ Red</div>
+                <div class="col-label be">⟐ Backend (CodeIgniter 4)</div>
+            </div>
+
+            <!-- Attacker Step 1 -->
+            <div class="flow-step">
+                <div class="actor-col frontend" style="border-color:rgba(239,68,68,0.2);">
+                    <div class="step-num red">1</div>
+                    <div class="label" style="color:var(--red);">Atacante — Postman / cURL</div>
+                    <div class="content">
+                        Intenta llamar al proxy directamente <strong>sin cookie</strong>
+                    </div>
+                    <div class="mini-code"><span class="fn">curl</span> <span class="str">https://tu-servidor.com/proxy/items</span>
+<span class="cm">// No tiene cookie auth_token</span>
+<span class="cm">// No conoce el JWT_SECRET para fabricar una</span></div>
+                </div>
+                <div class="arrow-col">
+                    <div class="arrow-bar">
+                        <div class="arrow-line-h right-red"></div>
+                        <div class="arrow-tip right-red"></div>
+                    </div>
+                    <div class="arrow-text red">GET /proxy/items<br>(sin cookie)</div>
+                </div>
+                <div class="actor-col empty"></div>
+            </div>
+
+            <!-- Attacker Step 2 -->
+            <div class="flow-step">
+                <div class="actor-col empty"></div>
+                <div class="arrow-col"></div>
+                <div class="actor-col backend">
+                    <div class="step-num red">2</div>
+                    <div class="label">Backend — Filtro AuthJWT</div>
+                    <div class="content">
+                        <strong>No hay cookie → No hay JWT → RECHAZADO</strong>
+                    </div>
+                    <div class="mini-code"><span class="vr">$token</span> = <span class="vr">$request</span>-><span class="fn">getCookie</span>(<span class="str">'auth_token'</span>);
+<span class="cm">// $token = null</span>
+
+<span class="kw">return</span> <span class="fn">response</span>()-><span class="fn">setJSON</span>([
+    <span class="str">'error'</span> => <span class="str">'No autenticado'</span>
+])-><span class="fn">setStatusCode</span>(<span class="num">401</span>);  <span class="cm">// ⛔ BLOQUEADO</span></div>
+                </div>
+            </div>
+
+            <!-- Attacker gets rejected -->
+            <div class="flow-step">
+                <div class="actor-col frontend" style="border-color:rgba(239,68,68,0.2);">
+                    <div class="step-num red">3</div>
+                    <div class="label" style="color:var(--red);">Atacante — Rechazado</div>
+                    <div class="content">
+                        Recibe error <strong>401 No autenticado</strong>. No puede acceder a la API. No puede fabricar un JWT válido porque no conoce el <code style="font-family:'JetBrains Mono',monospace;font-size:0.68rem;">JWT_SECRET</code>.
+                    </div>
+                    <div class="mini-code"><span class="cm">// Respuesta:</span>
+{ <span class="str">"error"</span>: <span class="str">"No autenticado"</span> }   <span class="cm">// 401</span>
+
+<span class="cm">// ¿Puede fabricar un JWT?</span>
+<span class="cm">// NO — necesitaría el JWT_SECRET que está en</span>
+<span class="cm">// el .env del servidor — inaccesible.</span></div>
+                </div>
+                <div class="arrow-col">
+                    <div class="arrow-bar">
+                        <div class="arrow-tip left-orange"></div>
+                        <div class="arrow-line-h left-orange"></div>
+                    </div>
+                    <div class="arrow-text red">401 Unauthorized<br>⛔ BLOQUEADO</div>
+                </div>
+                <div class="actor-col empty"></div>
+            </div>
+
+            <div class="callout danger">
+                <span class="icon">⛔</span>
+                <div><strong>El atacante no puede:</strong> ① Inspeccionar el JS para encontrar tokens (no hay ninguno) · ② Fabricar un JWT (no conoce JWT_SECRET) · ③ Robar la cookie con XSS (es HttpOnly) · ④ Usar la cookie desde otro sitio (SameSite + CORS) · ⑤ Interceptar en tránsito (Secure = solo HTTPS)</div>
+            </div>
+        </div>
+
+        <!-- SEPARATOR -->
+        <div class="phase-separator">
+            <div class="sep-line"></div>
+            <div class="sep-icon">⚡</div>
+            <div class="sep-line"></div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- COMPARISON                                    -->
+        <!-- ============================================ -->
+        <div class="phase">
+            <div class="phase-header">
+                <div class="phase-badge login">Resumen</div>
+                <div class="phase-title">Con vs Sin <code style="font-family:'JetBrains Mono',monospace;font-size:0.9rem;color:var(--cyan)">credentials: 'include'</code></div>
+                <div class="phase-line"></div>
+            </div>
+
+            <div class="compare-grid">
+                <div class="compare-card bad">
+                    <h4>❌ Sin credentials: 'include'</h4>
+                    <div class="mini-code" style="margin-top:0"><span class="fn">fetch</span>(<span class="str">'https://tu-servidor.com/proxy/items'</span>)
+
+<span class="cm">// Lo que viaja en el request HTTP:</span>
+<span class="pr">GET</span> /proxy/items
+<span class="pr">Host</span>: tu-servidor.com
+<span class="cm">// ← NO hay cookie</span>
+<span class="cm">// ← El navegador NO la adjunta</span>
+
+<span class="cm">// Backend: "¿Quién eres?" → 401</span></div>
+                    <p style="margin-top:12px">El navegador tiene la cookie guardada pero <strong>no la envía</strong> porque no le diste permiso. En peticiones cross-origin, el navegador protege las cookies por defecto.</p>
+                </div>
+                <div class="compare-card good">
+                    <h4>✅ Con credentials: 'include'</h4>
+                    <div class="mini-code" style="margin-top:0"><span class="fn">fetch</span>(<span class="str">'https://tu-servidor.com/proxy/items'</span>, {
+  <span class="pr">credentials</span>: <span class="str">'include'</span>,
+})
+
+<span class="cm">// Lo que viaja en el request HTTP:</span>
+<span class="pr">GET</span> /proxy/items
+<span class="pr">Host</span>: tu-servidor.com
+<span class="pr">Cookie</span>: auth_token=eyJhb.. <span class="cm">← ¡Automático!</span>
+
+<span class="cm">// Backend: JWT válido → 200 + datos</span></div>
+                    <p style="margin-top:12px">Le dices al navegador: <strong>"envía tus cookies"</strong>. Él las adjunta automáticamente. Tu JavaScript nunca ve ni toca el JWT.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>

@@ -1,0 +1,1526 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Implementación Completa — Código Detallado</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0b0f19;
+            --surface: #111827;
+            --surface-2: #162032;
+            --surface-3: #1a2540;
+            --border: #1e2d45;
+            --border-hover: #2d4466;
+            --text: #e2e8f0;
+            --text-dim: #8899b0;
+            --text-muted: #5c6f88;
+            --cyan: #22d3ee;
+            --blue: #3b82f6;
+            --green: #10b981;
+            --orange: #f59e0b;
+            --red: #ef4444;
+            --purple: #a78bfa;
+            --pink: #f472b6;
+            --yellow: #fbbf24;
+            /* syntax */
+            --syn-keyword: #c792ea;
+            --syn-string: #c3e88d;
+            --syn-number: #f78c6c;
+            --syn-comment: #546e7a;
+            --syn-func: #82aaff;
+            --syn-type: #ffcb6b;
+            --syn-tag: #f07178;
+            --syn-attr: #c792ea;
+            --syn-prop: #80cbc4;
+            --syn-var: #eeffff;
+            --syn-operator: #89ddff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            line-height: 1.6;
+        }
+
+        .bg-dots {
+            position: fixed;
+            inset: 0;
+            background-image: radial-gradient(rgba(59, 130, 246, 0.06) 1px, transparent 1px);
+            background-size: 24px 24px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 40px 20px 80px;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 56px;
+            padding-bottom: 32px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        header h1 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--cyan), var(--blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 6px;
+        }
+
+        header .subtitle {
+            color: var(--text-dim);
+            font-size: 0.88rem;
+        }
+
+        /* File structure nav */
+        .file-tree {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px 24px;
+            margin-bottom: 48px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 40px;
+        }
+
+        .file-tree-title {
+            grid-column: 1 / -1;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--cyan);
+            margin-bottom: 8px;
+        }
+
+        .tree-item {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            padding: 3px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tree-item .icon { font-size: 0.85rem; }
+        .tree-item .fname { color: var(--text); font-weight: 500; }
+        .tree-item .fpath { color: var(--text-muted); }
+
+        /* Section */
+        .section {
+            margin-bottom: 56px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .section-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--bg);
+            background: var(--cyan);
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .section-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            font-weight: 700;
+        }
+
+        .section-desc {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            margin-left: auto;
+        }
+
+        /* Code Block */
+        .code-block {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            transition: border-color 0.2s;
+        }
+
+        .code-block:hover {
+            border-color: var(--border-hover);
+        }
+
+        .code-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            background: var(--surface-2);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .code-file {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .code-file-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .icon-php { background: rgba(139, 92, 246, 0.2); color: var(--purple); }
+        .icon-ts { background: rgba(59, 130, 246, 0.2); color: var(--blue); }
+        .icon-env { background: rgba(16, 185, 129, 0.2); color: var(--green); }
+        .icon-yaml { background: rgba(245, 158, 11, 0.2); color: var(--orange); }
+        .icon-sql { background: rgba(244, 114, 182, 0.2); color: var(--pink); }
+
+        .code-filename {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .code-lang {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .code-body {
+            padding: 16px 0;
+            overflow-x: auto;
+        }
+
+        .code-body pre {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.73rem;
+            line-height: 1.7;
+            padding: 0 20px;
+            tab-size: 4;
+        }
+
+        /* Syntax colors */
+        .kw { color: var(--syn-keyword); }
+        .str { color: var(--syn-string); }
+        .num { color: var(--syn-number); }
+        .cm { color: var(--syn-comment); font-style: italic; }
+        .fn { color: var(--syn-func); }
+        .ty { color: var(--syn-type); }
+        .tg { color: var(--syn-tag); }
+        .at { color: var(--syn-attr); }
+        .pr { color: var(--syn-prop); }
+        .vr { color: var(--syn-var); }
+        .op { color: var(--syn-operator); }
+
+        /* Annotation */
+        .annotation {
+            display: flex;
+            gap: 10px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            line-height: 1.6;
+        }
+
+        .annotation.info {
+            background: rgba(59, 130, 246, 0.08);
+            border: 1px solid rgba(59, 130, 246, 0.15);
+            color: var(--text-dim);
+        }
+
+        .annotation.warn {
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.15);
+            color: var(--text-dim);
+        }
+
+        .annotation.success {
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.15);
+            color: var(--text-dim);
+        }
+
+        .annotation .ann-icon {
+            font-size: 1rem;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .annotation code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            background: rgba(255, 255, 255, 0.06);
+            padding: 1px 5px;
+            border-radius: 3px;
+        }
+
+        /* Connection arrows between sections */
+        .flow-connector {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 0;
+            margin-bottom: 20px;
+        }
+
+        .flow-arrow {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            color: var(--text-muted);
+        }
+
+        .flow-arrow .line {
+            width: 60px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+        }
+
+        .flow-arrow .arrow-icon {
+            color: var(--cyan);
+            font-size: 0.9rem;
+        }
+
+        /* Sub-header inside sections */
+        .sub-header {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-dim);
+            margin-bottom: 12px;
+            margin-top: 8px;
+            padding-left: 4px;
+            border-left: 2px solid var(--border-hover);
+            padding-left: 12px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .file-tree { grid-template-columns: 1fr; }
+            .section-desc { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-dots"></div>
+    <div class="container">
+
+        <header>
+            <h1>// Implementación Completa — Código Detallado</h1>
+            <p class="subtitle">SPA React + API Proxy CodeIgniter 4 con Cookie HttpOnly</p>
+        </header>
+
+        <!-- FILE TREE -->
+        <div class="file-tree">
+            <div class="file-tree-title">📁 Estructura de Archivos</div>
+            <div>
+                <div class="tree-item"><span class="icon">📂</span> <span class="fname">Backend — CodeIgniter 4</span></div>
+                <div class="tree-item" style="padding-left:16px"><span class="icon">⚙</span> <span class="fname">.env</span> <span class="fpath">— secrets del servidor</span></div>
+                <div class="tree-item" style="padding-left:16px"><span class="icon">📄</span> <span class="fname">Auth.php</span> <span class="fpath">— app/Controllers/</span></div>
+                <div class="tree-item" style="padding-left:16px"><span class="icon">📄</span> <span class="fname">ApiProxy.php</span> <span class="fpath">— app/Controllers/</span></div>
+                <div class="tree-item" style="padding-left:16px"><span class="icon">📄</span> <span class="fname">Cors.php</span> <span class="fpath">— app/Filters/</span></div>
+                <div class="tree-item" style="padding-left:16px"><span class="icon">📄</span> <span class="fname">AuthJWT.php</span> <span class="fpath">— app/Filters/</span></div>
+                <div class="tree-item" style="padding-left:16px"><span class="icon">📄</span> <span class="fname">Filters.php</span> <span class="fpath">— app/Config/</span></div>
+                <div class="tree-item" style="padding-left:16px"><span class="icon">📄</span> <span class="fname">Routes.php</span> <span class="fpath">— app/Config/</span></div>
+                <div class="tree-item" style="padding-left:16px"><span class="icon">📄</span> <span class="fname">UserModel.php</span> <span class="fpath">— app/Models/</span></div>
+            </div>
+            <div>
+                <div class="tree-item"><span class="icon">📂</span> <span class="fname">Frontend — React 19</span></div>
+                <div class="tree-item" style="padding-left:16px"><span class="icon">📄</span> <span class="fname">apiClient.ts</span> <span class="fpath">— src/services/</span></div>
+                <div class="tree-item" style="padding-left:16px"><span class="icon">📄</span> <span class="fname">AuthContext.tsx</span> <span class="fpath">— src/context/</span></div>
+                <div class="tree-item" style="padding-left:16px"><span class="icon">📄</span> <span class="fname">LoginPage.tsx</span> <span class="fpath">— src/pages/</span></div>
+                <div class="tree-item" style="padding-left:16px"><span class="icon">📄</span> <span class="fname">ProtectedRoute.tsx</span> <span class="fpath">— src/components/</span></div>
+                <div class="tree-item" style="padding-left:16px"><span class="icon">📄</span> <span class="fname">Dashboard.tsx</span> <span class="fpath">— src/pages/</span></div>
+                <div class="tree-item" style="padding-left:16px"><span class="icon">📄</span> <span class="fname">deploy.yml</span> <span class="fpath">— .github/workflows/</span></div>
+                <div class="tree-item"><span class="icon">📂</span> <span class="fname">Base de Datos</span></div>
+                <div class="tree-item" style="padding-left:16px"><span class="icon">📄</span> <span class="fname">migration.sql</span> <span class="fpath">— tabla users</span></div>
+            </div>
+        </div>
+
+        <!-- ===== SECTION 1: DATABASE ===== -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-num">01</div>
+                <div class="section-title">Base de Datos — Tabla de Usuarios</div>
+                <div class="section-desc">MySQL / PostgreSQL</div>
+            </div>
+
+            <div class="code-block">
+                <div class="code-header">
+                    <div class="code-file">
+                        <div class="code-file-icon icon-sql">SQ</div>
+                        <span class="code-filename">migration.sql</span>
+                    </div>
+                    <span class="code-lang">SQL</span>
+                </div>
+                <div class="code-body"><pre>
+<span class="kw">CREATE TABLE</span> <span class="fn">users</span> (
+    <span class="pr">id</span>          <span class="ty">INT</span> <span class="kw">AUTO_INCREMENT PRIMARY KEY</span>,
+    <span class="pr">name</span>        <span class="ty">VARCHAR</span>(<span class="num">100</span>) <span class="kw">NOT NULL</span>,
+    <span class="pr">email</span>       <span class="ty">VARCHAR</span>(<span class="num">255</span>) <span class="kw">NOT NULL UNIQUE</span>,
+    <span class="pr">password</span>    <span class="ty">VARCHAR</span>(<span class="num">255</span>) <span class="kw">NOT NULL</span>,  <span class="cm">-- bcrypt hash</span>
+    <span class="pr">role</span>        <span class="ty">ENUM</span>(<span class="str">'admin'</span>, <span class="str">'editor'</span>, <span class="str">'viewer'</span>) <span class="kw">DEFAULT</span> <span class="str">'viewer'</span>,
+    <span class="pr">is_active</span>   <span class="ty">TINYINT</span>(<span class="num">1</span>) <span class="kw">DEFAULT</span> <span class="num">1</span>,
+    <span class="pr">created_at</span>  <span class="ty">DATETIME</span> <span class="kw">DEFAULT CURRENT_TIMESTAMP</span>,
+    <span class="pr">updated_at</span>  <span class="ty">DATETIME</span> <span class="kw">DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP</span>
+);
+
+<span class="cm">-- Insertar usuario admin inicial</span>
+<span class="kw">INSERT INTO</span> <span class="fn">users</span> (<span class="pr">name</span>, <span class="pr">email</span>, <span class="pr">password</span>, <span class="pr">role</span>) <span class="kw">VALUES</span> (
+    <span class="str">'Admin'</span>,
+    <span class="str">'admin@tudominio.com'</span>,
+    <span class="str">'$2y$10$...'</span>,  <span class="cm">-- password_hash('tu_password', PASSWORD_BCRYPT)</span>
+    <span class="str">'admin'</span>
+);
+</pre></div>
+            </div>
+        </div>
+
+        <div class="flow-connector"><div class="flow-arrow"><span class="line"></span><span class="arrow-icon">▼</span><span>Tabla creada → Configurar backend</span><span class="arrow-icon">▼</span><span class="line"></span></div></div>
+
+        <!-- ===== SECTION 2: ENV ===== -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-num">02</div>
+                <div class="section-title">Variables de Entorno — Servidor</div>
+                <div class="section-desc">.env de CodeIgniter</div>
+            </div>
+
+            <div class="code-block">
+                <div class="code-header">
+                    <div class="code-file">
+                        <div class="code-file-icon icon-env">EN</div>
+                        <span class="code-filename">.env</span>
+                    </div>
+                    <span class="code-lang">ENV</span>
+                </div>
+                <div class="code-body"><pre>
+<span class="cm"># ──────────────────────────────────────────</span>
+<span class="cm"># CodeIgniter 4 — Variables de entorno</span>
+<span class="cm"># Este archivo NUNCA se sube al repositorio</span>
+<span class="cm"># ──────────────────────────────────────────</span>
+
+<span class="cm"># App</span>
+<span class="pr">CI_ENVIRONMENT</span> <span class="op">=</span> <span class="str">production</span>
+<span class="pr">app.baseURL</span> <span class="op">=</span> <span class="str">'https://tu-servidor.com'</span>
+
+<span class="cm"># Base de datos</span>
+<span class="pr">database.default.hostname</span> <span class="op">=</span> <span class="str">localhost</span>
+<span class="pr">database.default.database</span> <span class="op">=</span> <span class="str">mi_base_datos</span>
+<span class="pr">database.default.username</span> <span class="op">=</span> <span class="str">db_user</span>
+<span class="pr">database.default.password</span> <span class="op">=</span> <span class="str">db_password_seguro</span>
+<span class="pr">database.default.DBDriver</span> <span class="op">=</span> <span class="str">MySQLi</span>
+
+<span class="cm"># JWT — clave secreta para firmar tokens</span>
+<span class="pr">JWT_SECRET</span> <span class="op">=</span> <span class="str">una_clave_muy_larga_y_aleatoria_de_64_chars_minimo</span>
+
+<span class="cm"># API Externa — credenciales privadas</span>
+<span class="pr">API_EXTERNAL_URL</span> <span class="op">=</span> <span class="str">https://api-externa.com/v1</span>
+<span class="pr">API_EXTERNAL_KEY</span> <span class="op">=</span> <span class="str">sk_live_xxxxxxxxxxxxxxxxxxxxxxxxx</span>
+
+<span class="cm"># CORS — dominio del frontend</span>
+<span class="pr">ALLOWED_ORIGIN</span> <span class="op">=</span> <span class="str">https://tuusuario.github.io</span>
+</pre></div>
+            </div>
+
+            <div class="annotation warn">
+                <span class="ann-icon">⚠️</span>
+                <div>Agrega <code>.env</code> a tu <code>.gitignore</code>. Genera el <code>JWT_SECRET</code> con: <code>openssl rand -hex 64</code></div>
+            </div>
+        </div>
+
+        <div class="flow-connector"><div class="flow-arrow"><span class="line"></span><span class="arrow-icon">▼</span><span>Secrets configurados → Modelo de usuario</span><span class="arrow-icon">▼</span><span class="line"></span></div></div>
+
+        <!-- ===== SECTION 3: USER MODEL ===== -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-num">03</div>
+                <div class="section-title">Modelo de Usuario</div>
+                <div class="section-desc">app/Models/UserModel.php</div>
+            </div>
+
+            <div class="code-block">
+                <div class="code-header">
+                    <div class="code-file">
+                        <div class="code-file-icon icon-php">PH</div>
+                        <span class="code-filename">app/Models/UserModel.php</span>
+                    </div>
+                    <span class="code-lang">PHP</span>
+                </div>
+                <div class="code-body"><pre>
+<span class="op">&lt;?php</span>
+
+<span class="kw">namespace</span> <span class="ty">App\Models</span>;
+
+<span class="kw">use</span> <span class="ty">CodeIgniter\Model</span>;
+
+<span class="kw">class</span> <span class="ty">UserModel</span> <span class="kw">extends</span> <span class="ty">Model</span>
+{
+    <span class="kw">protected</span> <span class="vr">$table</span>            = <span class="str">'users'</span>;
+    <span class="kw">protected</span> <span class="vr">$primaryKey</span>       = <span class="str">'id'</span>;
+    <span class="kw">protected</span> <span class="vr">$allowedFields</span>    = [
+        <span class="str">'name'</span>, <span class="str">'email'</span>, <span class="str">'password'</span>, <span class="str">'role'</span>, <span class="str">'is_active'</span>
+    ];
+    <span class="kw">protected</span> <span class="vr">$returnType</span>       = <span class="str">'array'</span>;
+    <span class="kw">protected</span> <span class="vr">$useTimestamps</span>    = <span class="kw">true</span>;
+
+    <span class="cm">// Hashear password automáticamente antes de insertar</span>
+    <span class="kw">protected</span> <span class="vr">$beforeInsert</span>     = [<span class="str">'hashPassword'</span>];
+    <span class="kw">protected</span> <span class="vr">$beforeUpdate</span>     = [<span class="str">'hashPassword'</span>];
+
+    <span class="kw">protected function</span> <span class="fn">hashPassword</span>(<span class="kw">array</span> <span class="vr">$data</span>): <span class="ty">array</span>
+    {
+        <span class="kw">if</span> (<span class="fn">isset</span>(<span class="vr">$data</span>[<span class="str">'data'</span>][<span class="str">'password'</span>])) {
+            <span class="vr">$data</span>[<span class="str">'data'</span>][<span class="str">'password'</span>] = <span class="fn">password_hash</span>(
+                <span class="vr">$data</span>[<span class="str">'data'</span>][<span class="str">'password'</span>],
+                <span class="num">PASSWORD_BCRYPT</span>
+            );
+        }
+        <span class="kw">return</span> <span class="vr">$data</span>;
+    }
+}
+</pre></div>
+            </div>
+        </div>
+
+        <div class="flow-connector"><div class="flow-arrow"><span class="line"></span><span class="arrow-icon">▼</span><span>Modelo listo → Filtros de seguridad</span><span class="arrow-icon">▼</span><span class="line"></span></div></div>
+
+        <!-- ===== SECTION 4: CORS FILTER ===== -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-num">04</div>
+                <div class="section-title">Filtro CORS</div>
+                <div class="section-desc">app/Filters/Cors.php</div>
+            </div>
+
+            <div class="code-block">
+                <div class="code-header">
+                    <div class="code-file">
+                        <div class="code-file-icon icon-php">PH</div>
+                        <span class="code-filename">app/Filters/Cors.php</span>
+                    </div>
+                    <span class="code-lang">PHP</span>
+                </div>
+                <div class="code-body"><pre>
+<span class="op">&lt;?php</span>
+
+<span class="kw">namespace</span> <span class="ty">App\Filters</span>;
+
+<span class="kw">use</span> <span class="ty">CodeIgniter\HTTP\RequestInterface</span>;
+<span class="kw">use</span> <span class="ty">CodeIgniter\HTTP\ResponseInterface</span>;
+<span class="kw">use</span> <span class="ty">CodeIgniter\Filters\FilterInterface</span>;
+
+<span class="kw">class</span> <span class="ty">Cors</span> <span class="kw">implements</span> <span class="ty">FilterInterface</span>
+{
+    <span class="kw">public function</span> <span class="fn">before</span>(<span class="ty">RequestInterface</span> <span class="vr">$request</span>, <span class="vr">$arguments</span> = <span class="kw">null</span>)
+    {
+        <span class="cm">// Origen permitido desde .env</span>
+        <span class="vr">$allowedOrigin</span> = <span class="fn">getenv</span>(<span class="str">'ALLOWED_ORIGIN'</span>);
+        <span class="vr">$origin</span>        = <span class="vr">$request</span>-><span class="fn">getHeaderLine</span>(<span class="str">'Origin'</span>);
+
+        <span class="cm">// Validar origen server-side (no confiar solo en el navegador)</span>
+        <span class="kw">if</span> (<span class="vr">$origin</span> !== <span class="str">''</span> && <span class="vr">$origin</span> !== <span class="vr">$allowedOrigin</span>) {
+            <span class="kw">return</span> <span class="fn">service</span>(<span class="str">'response'</span>)
+                -><span class="fn">setJSON</span>([<span class="str">'error'</span> => <span class="str">'Origen no permitido'</span>])
+                -><span class="fn">setStatusCode</span>(<span class="num">403</span>);
+        }
+
+        <span class="cm">// Responder a preflight OPTIONS</span>
+        <span class="kw">if</span> (<span class="vr">$request</span>-><span class="fn">getMethod</span>() === <span class="str">'OPTIONS'</span>) {
+            <span class="kw">return</span> <span class="fn">service</span>(<span class="str">'response'</span>)
+                -><span class="fn">setHeader</span>(<span class="str">'Access-Control-Allow-Origin'</span>, <span class="vr">$allowedOrigin</span>)
+                -><span class="fn">setHeader</span>(<span class="str">'Access-Control-Allow-Methods'</span>, <span class="str">'GET, POST, PUT, DELETE, OPTIONS'</span>)
+                -><span class="fn">setHeader</span>(<span class="str">'Access-Control-Allow-Headers'</span>, <span class="str">'Content-Type, Authorization'</span>)
+                -><span class="fn">setHeader</span>(<span class="str">'Access-Control-Allow-Credentials'</span>, <span class="str">'true'</span>)
+                -><span class="fn">setStatusCode</span>(<span class="num">204</span>);
+        }
+    }
+
+    <span class="kw">public function</span> <span class="fn">after</span>(<span class="ty">RequestInterface</span> <span class="vr">$request</span>, <span class="ty">ResponseInterface</span> <span class="vr">$response</span>, <span class="vr">$arguments</span> = <span class="kw">null</span>)
+    {
+        <span class="vr">$allowedOrigin</span> = <span class="fn">getenv</span>(<span class="str">'ALLOWED_ORIGIN'</span>);
+
+        <span class="kw">return</span> <span class="vr">$response</span>
+            -><span class="fn">setHeader</span>(<span class="str">'Access-Control-Allow-Origin'</span>, <span class="vr">$allowedOrigin</span>)
+            -><span class="fn">setHeader</span>(<span class="str">'Access-Control-Allow-Methods'</span>, <span class="str">'GET, POST, PUT, DELETE, OPTIONS'</span>)
+            -><span class="fn">setHeader</span>(<span class="str">'Access-Control-Allow-Headers'</span>, <span class="str">'Content-Type, Authorization'</span>)
+            -><span class="fn">setHeader</span>(<span class="str">'Access-Control-Allow-Credentials'</span>, <span class="str">'true'</span>);
+    }
+}
+</pre></div>
+            </div>
+
+            <div class="annotation info">
+                <span class="ann-icon">💡</span>
+                <div><code>Access-Control-Allow-Credentials: true</code> es obligatorio para que el navegador envíe cookies cross-origin. Con esta opción NO puedes usar <code>*</code> como origen — debe ser el dominio exacto.</div>
+            </div>
+        </div>
+
+        <!-- ===== SECTION 5: JWT FILTER ===== -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-num">05</div>
+                <div class="section-title">Filtro de Autenticación JWT</div>
+                <div class="section-desc">app/Filters/AuthJWT.php</div>
+            </div>
+
+            <div class="code-block">
+                <div class="code-header">
+                    <div class="code-file">
+                        <div class="code-file-icon icon-php">PH</div>
+                        <span class="code-filename">app/Filters/AuthJWT.php</span>
+                    </div>
+                    <span class="code-lang">PHP</span>
+                </div>
+                <div class="code-body"><pre>
+<span class="op">&lt;?php</span>
+
+<span class="kw">namespace</span> <span class="ty">App\Filters</span>;
+
+<span class="kw">use</span> <span class="ty">CodeIgniter\HTTP\RequestInterface</span>;
+<span class="kw">use</span> <span class="ty">CodeIgniter\HTTP\ResponseInterface</span>;
+<span class="kw">use</span> <span class="ty">CodeIgniter\Filters\FilterInterface</span>;
+<span class="kw">use</span> <span class="ty">Firebase\JWT\JWT</span>;
+<span class="kw">use</span> <span class="ty">Firebase\JWT\Key</span>;
+
+<span class="kw">class</span> <span class="ty">AuthJWT</span> <span class="kw">implements</span> <span class="ty">FilterInterface</span>
+{
+    <span class="kw">public function</span> <span class="fn">before</span>(<span class="ty">RequestInterface</span> <span class="vr">$request</span>, <span class="vr">$arguments</span> = <span class="kw">null</span>)
+    {
+        <span class="cm">// ① Extraer JWT de la cookie HttpOnly (NO de Authorization header)</span>
+        <span class="vr">$token</span> = <span class="vr">$request</span>-><span class="fn">getCookie</span>(<span class="str">'auth_token'</span>);
+
+        <span class="kw">if</span> (!<span class="vr">$token</span>) {
+            <span class="kw">return</span> <span class="fn">service</span>(<span class="str">'response'</span>)
+                -><span class="fn">setJSON</span>([<span class="str">'error'</span> => <span class="str">'No autenticado'</span>])
+                -><span class="fn">setStatusCode</span>(<span class="num">401</span>);
+        }
+
+        <span class="kw">try</span> {
+            <span class="cm">// ② Decodificar y verificar firma + expiración</span>
+            <span class="vr">$key</span>     = <span class="fn">getenv</span>(<span class="str">'JWT_SECRET'</span>);
+            <span class="vr">$decoded</span> = <span class="ty">JWT</span>::<span class="fn">decode</span>(<span class="vr">$token</span>, <span class="kw">new</span> <span class="ty">Key</span>(<span class="vr">$key</span>, <span class="str">'HS256'</span>));
+
+            <span class="cm">// ③ Verificar que el usuario sigue activo en la DB</span>
+            <span class="vr">$userModel</span> = <span class="kw">new</span> <span class="ty">\App\Models\UserModel</span>();
+            <span class="vr">$user</span> = <span class="vr">$userModel</span>-><span class="fn">where</span>(<span class="str">'id'</span>, <span class="vr">$decoded</span>-><span class="pr">sub</span>)
+                                  -><span class="fn">where</span>(<span class="str">'is_active'</span>, <span class="num">1</span>)
+                                  -><span class="fn">first</span>();
+
+            <span class="kw">if</span> (!<span class="vr">$user</span>) {
+                <span class="kw">return</span> <span class="fn">service</span>(<span class="str">'response'</span>)
+                    -><span class="fn">setJSON</span>([<span class="str">'error'</span> => <span class="str">'Usuario desactivado'</span>])
+                    -><span class="fn">setStatusCode</span>(<span class="num">401</span>);
+            }
+
+            <span class="cm">// ④ Adjuntar datos del usuario al request</span>
+            <span class="vr">$request</span>-><span class="pr">userData</span> = <span class="vr">$decoded</span>;
+
+        } <span class="kw">catch</span> (<span class="ty">\Firebase\JWT\ExpiredException</span> <span class="vr">$e</span>) {
+            <span class="kw">return</span> <span class="fn">service</span>(<span class="str">'response'</span>)
+                -><span class="fn">setJSON</span>([<span class="str">'error'</span> => <span class="str">'Token expirado'</span>])
+                -><span class="fn">setStatusCode</span>(<span class="num">401</span>);
+        } <span class="kw">catch</span> (<span class="ty">\Exception</span> <span class="vr">$e</span>) {
+            <span class="kw">return</span> <span class="fn">service</span>(<span class="str">'response'</span>)
+                -><span class="fn">setJSON</span>([<span class="str">'error'</span> => <span class="str">'Token inválido'</span>])
+                -><span class="fn">setStatusCode</span>(<span class="num">401</span>);
+        }
+    }
+
+    <span class="kw">public function</span> <span class="fn">after</span>(<span class="ty">RequestInterface</span> <span class="vr">$request</span>, <span class="ty">ResponseInterface</span> <span class="vr">$response</span>, <span class="vr">$arguments</span> = <span class="kw">null</span>)
+    {
+        <span class="cm">// No se necesita acción post-request</span>
+    }
+}
+</pre></div>
+            </div>
+        </div>
+
+        <div class="flow-connector"><div class="flow-arrow"><span class="line"></span><span class="arrow-icon">▼</span><span>Filtros listos → Registrar en configuración</span><span class="arrow-icon">▼</span><span class="line"></span></div></div>
+
+        <!-- ===== SECTION 6: FILTERS CONFIG ===== -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-num">06</div>
+                <div class="section-title">Registro de Filtros</div>
+                <div class="section-desc">app/Config/Filters.php</div>
+            </div>
+
+            <div class="code-block">
+                <div class="code-header">
+                    <div class="code-file">
+                        <div class="code-file-icon icon-php">PH</div>
+                        <span class="code-filename">app/Config/Filters.php</span>
+                    </div>
+                    <span class="code-lang">PHP</span>
+                </div>
+                <div class="code-body"><pre>
+<span class="op">&lt;?php</span>
+
+<span class="kw">namespace</span> <span class="ty">Config</span>;
+
+<span class="kw">use</span> <span class="ty">CodeIgniter\Config\Filters</span> <span class="kw">as</span> <span class="ty">BaseFilters</span>;
+
+<span class="kw">class</span> <span class="ty">Filters</span> <span class="kw">extends</span> <span class="ty">BaseFilters</span>
+{
+    <span class="cm">// ① Registrar alias de los filtros</span>
+    <span class="kw">public</span> <span class="vr">$aliases</span> = [
+        <span class="str">'cors'</span>    => <span class="ty">\App\Filters\Cors</span>::<span class="kw">class</span>,
+        <span class="str">'authJwt'</span> => <span class="ty">\App\Filters\AuthJWT</span>::<span class="kw">class</span>,
+    ];
+
+    <span class="cm">// ② CORS se aplica GLOBALMENTE a todos los requests</span>
+    <span class="kw">public</span> <span class="vr">$globals</span> = [
+        <span class="str">'before'</span> => [
+            <span class="str">'cors'</span>,
+        ],
+        <span class="str">'after'</span> => [
+            <span class="str">'cors'</span>,
+        ],
+    ];
+
+    <span class="cm">// ③ authJwt se aplica por ruta (ver Routes.php)</span>
+}
+</pre></div>
+            </div>
+        </div>
+
+        <!-- ===== SECTION 7: AUTH CONTROLLER ===== -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-num">07</div>
+                <div class="section-title">Controlador de Autenticación</div>
+                <div class="section-desc">app/Controllers/Auth.php</div>
+            </div>
+
+            <div class="code-block">
+                <div class="code-header">
+                    <div class="code-file">
+                        <div class="code-file-icon icon-php">PH</div>
+                        <span class="code-filename">app/Controllers/Auth.php</span>
+                    </div>
+                    <span class="code-lang">PHP</span>
+                </div>
+                <div class="code-body"><pre>
+<span class="op">&lt;?php</span>
+
+<span class="kw">namespace</span> <span class="ty">App\Controllers</span>;
+
+<span class="kw">use</span> <span class="ty">CodeIgniter\RESTful\ResourceController</span>;
+<span class="kw">use</span> <span class="ty">App\Models\UserModel</span>;
+<span class="kw">use</span> <span class="ty">Firebase\JWT\JWT</span>;
+
+<span class="kw">class</span> <span class="ty">Auth</span> <span class="kw">extends</span> <span class="ty">ResourceController</span>
+{
+    <span class="cm">/**
+     * POST /auth/login
+     * Recibe email + password, devuelve cookie HttpOnly con JWT
+     */</span>
+    <span class="kw">public function</span> <span class="fn">login</span>()
+    {
+        <span class="cm">// ① Validar input</span>
+        <span class="vr">$rules</span> = [
+            <span class="str">'email'</span>    => <span class="str">'required|valid_email'</span>,
+            <span class="str">'password'</span> => <span class="str">'required|min_length[6]'</span>,
+        ];
+
+        <span class="kw">if</span> (!<span class="vr">$this</span>-><span class="fn">validate</span>(<span class="vr">$rules</span>)) {
+            <span class="kw">return</span> <span class="vr">$this</span>-><span class="fn">respond</span>([<span class="str">'errors'</span> => <span class="vr">$this</span>-><span class="pr">validator</span>-><span class="fn">getErrors</span>()], <span class="num">422</span>);
+        }
+
+        <span class="vr">$email</span>    = <span class="vr">$this</span>-><span class="pr">request</span>-><span class="fn">getJSON</span>()-><span class="pr">email</span>;
+        <span class="vr">$password</span> = <span class="vr">$this</span>-><span class="pr">request</span>-><span class="fn">getJSON</span>()-><span class="pr">password</span>;
+
+        <span class="cm">// ② Buscar usuario activo</span>
+        <span class="vr">$userModel</span> = <span class="kw">new</span> <span class="ty">UserModel</span>();
+        <span class="vr">$user</span> = <span class="vr">$userModel</span>-><span class="fn">where</span>(<span class="str">'email'</span>, <span class="vr">$email</span>)
+                            -><span class="fn">where</span>(<span class="str">'is_active'</span>, <span class="num">1</span>)
+                            -><span class="fn">first</span>();
+
+        <span class="kw">if</span> (!<span class="vr">$user</span> || !<span class="fn">password_verify</span>(<span class="vr">$password</span>, <span class="vr">$user</span>[<span class="str">'password'</span>])) {
+            <span class="kw">return</span> <span class="vr">$this</span>-><span class="fn">respond</span>([<span class="str">'error'</span> => <span class="str">'Credenciales inválidas'</span>], <span class="num">401</span>);
+        }
+
+        <span class="cm">// ③ Generar JWT</span>
+        <span class="vr">$key</span>     = <span class="fn">getenv</span>(<span class="str">'JWT_SECRET'</span>);
+        <span class="vr">$payload</span> = [
+            <span class="str">'sub'</span>  => <span class="vr">$user</span>[<span class="str">'id'</span>],       <span class="cm">// ID del usuario</span>
+            <span class="str">'name'</span> => <span class="vr">$user</span>[<span class="str">'name'</span>],     <span class="cm">// Nombre para el frontend</span>
+            <span class="str">'role'</span> => <span class="vr">$user</span>[<span class="str">'role'</span>],     <span class="cm">// admin | editor | viewer</span>
+            <span class="str">'iat'</span>  => <span class="fn">time</span>(),             <span class="cm">// Emitido ahora</span>
+            <span class="str">'exp'</span>  => <span class="fn">time</span>() + <span class="num">3600</span>,    <span class="cm">// Expira en 1 hora</span>
+        ];
+
+        <span class="vr">$jwt</span> = <span class="ty">JWT</span>::<span class="fn">encode</span>(<span class="vr">$payload</span>, <span class="vr">$key</span>, <span class="str">'HS256'</span>);
+
+        <span class="cm">// ④ Enviar como cookie HttpOnly — CLAVE DE SEGURIDAD</span>
+        <span class="vr">$this</span>-><span class="pr">response</span>-><span class="fn">setCookie</span>([
+            <span class="str">'name'</span>     => <span class="str">'auth_token'</span>,
+            <span class="str">'value'</span>    => <span class="vr">$jwt</span>,
+            <span class="str">'expire'</span>   => <span class="num">3600</span>,          <span class="cm">// 1 hora</span>
+            <span class="str">'httponly'</span>  => <span class="kw">true</span>,          <span class="cm">// ⛔ JS no puede leerla</span>
+            <span class="str">'secure'</span>   => <span class="kw">true</span>,          <span class="cm">// 🔒 Solo HTTPS</span>
+            <span class="str">'samesite'</span> => <span class="str">'None'</span>,        <span class="cm">// 🌐 Cross-site (distinto dominio)</span>
+            <span class="str">'path'</span>     => <span class="str">'/'</span>,
+        ]);
+
+        <span class="cm">// ⑤ Responder con datos del usuario (sin el JWT)</span>
+        <span class="kw">return</span> <span class="vr">$this</span>-><span class="fn">respond</span>([
+            <span class="str">'message'</span> => <span class="str">'Login exitoso'</span>,
+            <span class="str">'user'</span>    => [
+                <span class="str">'id'</span>   => <span class="vr">$user</span>[<span class="str">'id'</span>],
+                <span class="str">'name'</span> => <span class="vr">$user</span>[<span class="str">'name'</span>],
+                <span class="str">'role'</span> => <span class="vr">$user</span>[<span class="str">'role'</span>],
+            ],
+        ]);
+    }
+
+    <span class="cm">/**
+     * POST /auth/logout
+     * Elimina la cookie de autenticación
+     */</span>
+    <span class="kw">public function</span> <span class="fn">logout</span>()
+    {
+        <span class="vr">$this</span>-><span class="pr">response</span>-><span class="fn">setCookie</span>([
+            <span class="str">'name'</span>     => <span class="str">'auth_token'</span>,
+            <span class="str">'value'</span>    => <span class="str">''</span>,
+            <span class="str">'expire'</span>   => <span class="num">0</span>,            <span class="cm">// Expirar inmediatamente</span>
+            <span class="str">'httponly'</span>  => <span class="kw">true</span>,
+            <span class="str">'secure'</span>   => <span class="kw">true</span>,
+            <span class="str">'samesite'</span> => <span class="str">'None'</span>,
+            <span class="str">'path'</span>     => <span class="str">'/'</span>,
+        ]);
+
+        <span class="kw">return</span> <span class="vr">$this</span>-><span class="fn">respond</span>([<span class="str">'message'</span> => <span class="str">'Sesión cerrada'</span>]);
+    }
+
+    <span class="cm">/**
+     * GET /auth/me
+     * Devuelve datos del usuario actual (requiere authJwt filter)
+     */</span>
+    <span class="kw">public function</span> <span class="fn">me</span>()
+    {
+        <span class="vr">$userData</span> = <span class="vr">$this</span>-><span class="pr">request</span>-><span class="pr">userData</span>;
+
+        <span class="kw">return</span> <span class="vr">$this</span>-><span class="fn">respond</span>([
+            <span class="str">'user'</span> => [
+                <span class="str">'id'</span>   => <span class="vr">$userData</span>-><span class="pr">sub</span>,
+                <span class="str">'name'</span> => <span class="vr">$userData</span>-><span class="pr">name</span>,
+                <span class="str">'role'</span> => <span class="vr">$userData</span>-><span class="pr">role</span>,
+            ],
+        ]);
+    }
+}
+</pre></div>
+            </div>
+
+            <div class="annotation warn">
+                <span class="ann-icon">⚠️</span>
+                <div>Se usa <code>SameSite=None</code> porque el frontend (<code>github.io</code>) y el backend (<code>tu-servidor.com</code>) están en dominios distintos. Esto requiere <code>Secure=true</code> (HTTPS obligatorio en ambos). Si estuvieran en el mismo dominio, usarías <code>SameSite=Strict</code> para mayor seguridad.</div>
+            </div>
+        </div>
+
+        <div class="flow-connector"><div class="flow-arrow"><span class="line"></span><span class="arrow-icon">▼</span><span>Auth listo → Controlador proxy a API externa</span><span class="arrow-icon">▼</span><span class="line"></span></div></div>
+
+        <!-- ===== SECTION 8: API PROXY CONTROLLER ===== -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-num">08</div>
+                <div class="section-title">Controlador API Proxy</div>
+                <div class="section-desc">app/Controllers/ApiProxy.php</div>
+            </div>
+
+            <div class="code-block">
+                <div class="code-header">
+                    <div class="code-file">
+                        <div class="code-file-icon icon-php">PH</div>
+                        <span class="code-filename">app/Controllers/ApiProxy.php</span>
+                    </div>
+                    <span class="code-lang">PHP</span>
+                </div>
+                <div class="code-body"><pre>
+<span class="op">&lt;?php</span>
+
+<span class="kw">namespace</span> <span class="ty">App\Controllers</span>;
+
+<span class="kw">use</span> <span class="ty">CodeIgniter\RESTful\ResourceController</span>;
+
+<span class="kw">class</span> <span class="ty">ApiProxy</span> <span class="kw">extends</span> <span class="ty">ResourceController</span>
+{
+    <span class="cm">// Credenciales que SOLO existen en el servidor</span>
+    <span class="kw">private</span> <span class="ty">string</span> <span class="vr">$apiUrl</span>;
+    <span class="kw">private</span> <span class="ty">string</span> <span class="vr">$apiKey</span>;
+
+    <span class="kw">public function</span> <span class="fn">__construct</span>()
+    {
+        <span class="vr">$this</span>-><span class="pr">apiUrl</span> = <span class="fn">getenv</span>(<span class="str">'API_EXTERNAL_URL'</span>);
+        <span class="vr">$this</span>-><span class="pr">apiKey</span> = <span class="fn">getenv</span>(<span class="str">'API_EXTERNAL_KEY'</span>);
+    }
+
+    <span class="cm">/**
+     * Helper — Headers para la API externa
+     */</span>
+    <span class="kw">private function</span> <span class="fn">apiHeaders</span>(): <span class="ty">array</span>
+    {
+        <span class="kw">return</span> [
+            <span class="str">'headers'</span> => [
+                <span class="str">'Authorization'</span> => <span class="str">'Bearer '</span> . <span class="vr">$this</span>-><span class="pr">apiKey</span>,
+                <span class="str">'Content-Type'</span>  => <span class="str">'application/json'</span>,
+                <span class="str">'Accept'</span>        => <span class="str">'application/json'</span>,
+            ],
+        ];
+    }
+
+    <span class="cm">/**
+     * Helper — Verificar rol mínimo requerido
+     */</span>
+    <span class="kw">private function</span> <span class="fn">requireRole</span>(<span class="ty">string</span> <span class="vr">$minimumRole</span>): <span class="ty">bool</span>
+    {
+        <span class="vr">$roles</span>    = [<span class="str">'viewer'</span> => <span class="num">1</span>, <span class="str">'editor'</span> => <span class="num">2</span>, <span class="str">'admin'</span> => <span class="num">3</span>];
+        <span class="vr">$userRole</span> = <span class="vr">$this</span>-><span class="pr">request</span>-><span class="pr">userData</span>-><span class="pr">role</span>;
+
+        <span class="kw">return</span> (<span class="vr">$roles</span>[<span class="vr">$userRole</span>] ?? <span class="num">0</span>) >= (<span class="vr">$roles</span>[<span class="vr">$minimumRole</span>] ?? <span class="num">99</span>);
+    }
+
+    <span class="cm">// ─────────────────────────────────────────────────
+    // GET /proxy/items — Listar (viewer+)
+    // ─────────────────────────────────────────────────</span>
+    <span class="kw">public function</span> <span class="fn">index</span>()
+    {
+        <span class="vr">$client</span>   = <span class="ty">\Config\Services</span>::<span class="fn">curlrequest</span>();
+        <span class="vr">$response</span> = <span class="vr">$client</span>-><span class="fn">get</span>(
+            <span class="vr">$this</span>-><span class="pr">apiUrl</span> . <span class="str">'/items'</span>,
+            <span class="vr">$this</span>-><span class="fn">apiHeaders</span>()
+        );
+
+        <span class="kw">return</span> <span class="vr">$this</span>-><span class="fn">respond</span>(
+            <span class="fn">json_decode</span>(<span class="vr">$response</span>-><span class="fn">getBody</span>()),
+            <span class="vr">$response</span>-><span class="fn">getStatusCode</span>()
+        );
+    }
+
+    <span class="cm">// ─────────────────────────────────────────────────
+    // GET /proxy/items/:id — Detalle (viewer+)
+    // ─────────────────────────────────────────────────</span>
+    <span class="kw">public function</span> <span class="fn">show</span>(<span class="vr">$id</span> = <span class="kw">null</span>)
+    {
+        <span class="vr">$client</span>   = <span class="ty">\Config\Services</span>::<span class="fn">curlrequest</span>();
+        <span class="vr">$response</span> = <span class="vr">$client</span>-><span class="fn">get</span>(
+            <span class="vr">$this</span>-><span class="pr">apiUrl</span> . <span class="str">"/items/{$id}"</span>,
+            <span class="vr">$this</span>-><span class="fn">apiHeaders</span>()
+        );
+
+        <span class="kw">return</span> <span class="vr">$this</span>-><span class="fn">respond</span>(
+            <span class="fn">json_decode</span>(<span class="vr">$response</span>-><span class="fn">getBody</span>()),
+            <span class="vr">$response</span>-><span class="fn">getStatusCode</span>()
+        );
+    }
+
+    <span class="cm">// ─────────────────────────────────────────────────
+    // POST /proxy/items — Crear (editor+)
+    // ─────────────────────────────────────────────────</span>
+    <span class="kw">public function</span> <span class="fn">create</span>()
+    {
+        <span class="kw">if</span> (!<span class="vr">$this</span>-><span class="fn">requireRole</span>(<span class="str">'editor'</span>)) {
+            <span class="kw">return</span> <span class="vr">$this</span>-><span class="fn">respond</span>([<span class="str">'error'</span> => <span class="str">'Sin permisos para crear'</span>], <span class="num">403</span>);
+        }
+
+        <span class="vr">$body</span>     = <span class="vr">$this</span>-><span class="pr">request</span>-><span class="fn">getJSON</span>(<span class="kw">true</span>);
+        <span class="vr">$client</span>   = <span class="ty">\Config\Services</span>::<span class="fn">curlrequest</span>();
+        <span class="vr">$options</span>  = <span class="fn">array_merge</span>(<span class="vr">$this</span>-><span class="fn">apiHeaders</span>(), [<span class="str">'json'</span> => <span class="vr">$body</span>]);
+        <span class="vr">$response</span> = <span class="vr">$client</span>-><span class="fn">post</span>(<span class="vr">$this</span>-><span class="pr">apiUrl</span> . <span class="str">'/items'</span>, <span class="vr">$options</span>);
+
+        <span class="kw">return</span> <span class="vr">$this</span>-><span class="fn">respond</span>(
+            <span class="fn">json_decode</span>(<span class="vr">$response</span>-><span class="fn">getBody</span>()),
+            <span class="vr">$response</span>-><span class="fn">getStatusCode</span>()
+        );
+    }
+
+    <span class="cm">// ─────────────────────────────────────────────────
+    // PUT /proxy/items/:id — Actualizar (editor+)
+    // ─────────────────────────────────────────────────</span>
+    <span class="kw">public function</span> <span class="fn">update</span>(<span class="vr">$id</span> = <span class="kw">null</span>)
+    {
+        <span class="kw">if</span> (!<span class="vr">$this</span>-><span class="fn">requireRole</span>(<span class="str">'editor'</span>)) {
+            <span class="kw">return</span> <span class="vr">$this</span>-><span class="fn">respond</span>([<span class="str">'error'</span> => <span class="str">'Sin permisos para editar'</span>], <span class="num">403</span>);
+        }
+
+        <span class="vr">$body</span>     = <span class="vr">$this</span>-><span class="pr">request</span>-><span class="fn">getJSON</span>(<span class="kw">true</span>);
+        <span class="vr">$client</span>   = <span class="ty">\Config\Services</span>::<span class="fn">curlrequest</span>();
+        <span class="vr">$options</span>  = <span class="fn">array_merge</span>(<span class="vr">$this</span>-><span class="fn">apiHeaders</span>(), [<span class="str">'json'</span> => <span class="vr">$body</span>]);
+        <span class="vr">$response</span> = <span class="vr">$client</span>-><span class="fn">put</span>(<span class="vr">$this</span>-><span class="pr">apiUrl</span> . <span class="str">"/items/{$id}"</span>, <span class="vr">$options</span>);
+
+        <span class="kw">return</span> <span class="vr">$this</span>-><span class="fn">respond</span>(
+            <span class="fn">json_decode</span>(<span class="vr">$response</span>-><span class="fn">getBody</span>()),
+            <span class="vr">$response</span>-><span class="fn">getStatusCode</span>()
+        );
+    }
+
+    <span class="cm">// ─────────────────────────────────────────────────
+    // DELETE /proxy/items/:id — Eliminar (admin ONLY)
+    // ─────────────────────────────────────────────────</span>
+    <span class="kw">public function</span> <span class="fn">delete</span>(<span class="vr">$id</span> = <span class="kw">null</span>)
+    {
+        <span class="kw">if</span> (!<span class="vr">$this</span>-><span class="fn">requireRole</span>(<span class="str">'admin'</span>)) {
+            <span class="kw">return</span> <span class="vr">$this</span>-><span class="fn">respond</span>([<span class="str">'error'</span> => <span class="str">'Solo administradores pueden eliminar'</span>], <span class="num">403</span>);
+        }
+
+        <span class="vr">$client</span>   = <span class="ty">\Config\Services</span>::<span class="fn">curlrequest</span>();
+        <span class="vr">$response</span> = <span class="vr">$client</span>-><span class="fn">delete</span>(
+            <span class="vr">$this</span>-><span class="pr">apiUrl</span> . <span class="str">"/items/{$id}"</span>,
+            <span class="vr">$this</span>-><span class="fn">apiHeaders</span>()
+        );
+
+        <span class="kw">return</span> <span class="vr">$this</span>-><span class="fn">respond</span>(
+            <span class="fn">json_decode</span>(<span class="vr">$response</span>-><span class="fn">getBody</span>()),
+            <span class="vr">$response</span>-><span class="fn">getStatusCode</span>()
+        );
+    }
+}
+</pre></div>
+            </div>
+
+            <div class="annotation success">
+                <span class="ann-icon">✅</span>
+                <div>Las credenciales de la API externa (<code>API_EXTERNAL_KEY</code>) nunca llegan al frontend. Solo el proxy las conoce. El control de roles impide que un <code>viewer</code> ejecute DELETE aunque tenga sesión válida.</div>
+            </div>
+        </div>
+
+        <!-- ===== SECTION 9: ROUTES ===== -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-num">09</div>
+                <div class="section-title">Configuración de Rutas</div>
+                <div class="section-desc">app/Config/Routes.php</div>
+            </div>
+
+            <div class="code-block">
+                <div class="code-header">
+                    <div class="code-file">
+                        <div class="code-file-icon icon-php">PH</div>
+                        <span class="code-filename">app/Config/Routes.php</span>
+                    </div>
+                    <span class="code-lang">PHP</span>
+                </div>
+                <div class="code-body"><pre>
+<span class="op">&lt;?php</span>
+
+<span class="kw">use</span> <span class="ty">CodeIgniter\Router\RouteCollection</span>;
+
+<span class="cm">/** @var RouteCollection $routes */</span>
+
+<span class="cm">// ─── Rutas públicas (sin autenticación) ────────────</span>
+<span class="vr">$routes</span>-><span class="fn">post</span>(<span class="str">'auth/login'</span>,  <span class="str">'Auth::login'</span>);
+
+<span class="cm">// ─── Rutas protegidas (requieren JWT válido) ───────</span>
+<span class="vr">$routes</span>-><span class="fn">group</span>(<span class="str">''</span>, [<span class="str">'filter'</span> => <span class="str">'authJwt'</span>], <span class="kw">function</span> (<span class="vr">$routes</span>) {
+
+    <span class="cm">// Auth</span>
+    <span class="vr">$routes</span>-><span class="fn">post</span>(<span class="str">'auth/logout'</span>, <span class="str">'Auth::logout'</span>);
+    <span class="vr">$routes</span>-><span class="fn">get</span>(<span class="str">'auth/me'</span>,     <span class="str">'Auth::me'</span>);
+
+    <span class="cm">// Proxy API — resource crea GET, POST, PUT, DELETE automáticamente</span>
+    <span class="vr">$routes</span>-><span class="fn">resource</span>(<span class="str">'proxy/items'</span>, [<span class="str">'controller'</span> => <span class="str">'ApiProxy'</span>]);
+
+    <span class="cm">// Equivalente manual:</span>
+    <span class="cm">// $routes->get('proxy/items',        'ApiProxy::index');</span>
+    <span class="cm">// $routes->get('proxy/items/(:num)',  'ApiProxy::show/$1');</span>
+    <span class="cm">// $routes->post('proxy/items',        'ApiProxy::create');</span>
+    <span class="cm">// $routes->put('proxy/items/(:num)',  'ApiProxy::update/$1');</span>
+    <span class="cm">// $routes->delete('proxy/items/(:num)','ApiProxy::delete/$1');</span>
+});
+</pre></div>
+            </div>
+        </div>
+
+        <div class="flow-connector"><div class="flow-arrow"><span class="line"></span><span class="arrow-icon">▼</span><span>Backend completo → Frontend React</span><span class="arrow-icon">▼</span><span class="line"></span></div></div>
+
+        <!-- ===== SECTION 10: FRONTEND API CLIENT ===== -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-num">10</div>
+                <div class="section-title">Cliente API — Frontend</div>
+                <div class="section-desc">src/services/apiClient.ts</div>
+            </div>
+
+            <div class="code-block">
+                <div class="code-header">
+                    <div class="code-file">
+                        <div class="code-file-icon icon-ts">TS</div>
+                        <span class="code-filename">src/services/apiClient.ts</span>
+                    </div>
+                    <span class="code-lang">TypeScript</span>
+                </div>
+                <div class="code-body"><pre>
+<span class="cm">// ─── Base URL del proxy (NO de la API externa) ─────</span>
+<span class="kw">const</span> <span class="vr">BASE_URL</span> = <span class="kw">import</span>.meta.env.<span class="pr">VITE_API_BASE_URL</span>;
+<span class="cm">// Ejemplo: https://tu-servidor.com</span>
+
+<span class="cm">// ─── Tipos ──────────────────────────────────────────</span>
+<span class="kw">interface</span> <span class="ty">User</span> {
+  <span class="pr">id</span>: <span class="ty">number</span>;
+  <span class="pr">name</span>: <span class="ty">string</span>;
+  <span class="pr">role</span>: <span class="str">'admin'</span> | <span class="str">'editor'</span> | <span class="str">'viewer'</span>;
+}
+
+<span class="kw">interface</span> <span class="ty">LoginResponse</span> {
+  <span class="pr">message</span>: <span class="ty">string</span>;
+  <span class="pr">user</span>: <span class="ty">User</span>;
+}
+
+<span class="cm">// ─── Fetch wrapper con credentials ──────────────────</span>
+<span class="kw">async function</span> <span class="fn">apiFetch</span>&lt;<span class="ty">T</span>&gt;(
+  <span class="vr">endpoint</span>: <span class="ty">string</span>,
+  <span class="vr">options</span>: <span class="ty">RequestInit</span> = {}
+): <span class="ty">Promise</span>&lt;<span class="ty">T</span>&gt; {
+  <span class="kw">const</span> <span class="vr">response</span> = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">`<span class="vr">${BASE_URL}${endpoint}</span>`</span>, {
+    ...options,
+    <span class="pr">credentials</span>: <span class="str">'include'</span>,  <span class="cm">// ← CLAVE: envía la cookie automáticamente</span>
+    <span class="pr">headers</span>: {
+      <span class="str">'Content-Type'</span>: <span class="str">'application/json'</span>,
+      ...<span class="vr">options</span>.<span class="pr">headers</span>,
+    },
+  });
+
+  <span class="kw">if</span> (<span class="vr">response</span>.<span class="pr">status</span> === <span class="num">401</span>) {
+    <span class="cm">// Token expirado o inválido → redirigir a login</span>
+    <span class="vr">window</span>.<span class="pr">location</span>.<span class="pr">href</span> = <span class="str">'/login'</span>;
+    <span class="kw">throw new</span> <span class="ty">Error</span>(<span class="str">'No autenticado'</span>);
+  }
+
+  <span class="kw">if</span> (!<span class="vr">response</span>.<span class="pr">ok</span>) {
+    <span class="kw">const</span> <span class="vr">error</span> = <span class="kw">await</span> <span class="vr">response</span>.<span class="fn">json</span>();
+    <span class="kw">throw new</span> <span class="ty">Error</span>(<span class="vr">error</span>.<span class="pr">error</span> || <span class="str">'Error en la petición'</span>);
+  }
+
+  <span class="kw">return</span> <span class="vr">response</span>.<span class="fn">json</span>();
+}
+
+<span class="cm">// ─── Auth endpoints ─────────────────────────────────</span>
+<span class="kw">export const</span> <span class="vr">authApi</span> = {
+  <span class="fn">login</span>: (<span class="vr">email</span>: <span class="ty">string</span>, <span class="vr">password</span>: <span class="ty">string</span>) =>
+    <span class="fn">apiFetch</span>&lt;<span class="ty">LoginResponse</span>&gt;(<span class="str">'/auth/login'</span>, {
+      <span class="pr">method</span>: <span class="str">'POST'</span>,
+      <span class="pr">body</span>: <span class="ty">JSON</span>.<span class="fn">stringify</span>({ <span class="vr">email</span>, <span class="vr">password</span> }),
+    }),
+
+  <span class="fn">logout</span>: () =>
+    <span class="fn">apiFetch</span>(<span class="str">'/auth/logout'</span>, { <span class="pr">method</span>: <span class="str">'POST'</span> }),
+
+  <span class="fn">me</span>: () =>
+    <span class="fn">apiFetch</span>&lt;{ <span class="pr">user</span>: <span class="ty">User</span> }&gt;(<span class="str">'/auth/me'</span>),
+};
+
+<span class="cm">// ─── Proxy API endpoints ────────────────────────────</span>
+<span class="kw">export const</span> <span class="vr">itemsApi</span> = {
+  <span class="fn">getAll</span>: () =>
+    <span class="fn">apiFetch</span>&lt;<span class="ty">any</span>[]&gt;(<span class="str">'/proxy/items'</span>),
+
+  <span class="fn">getById</span>: (<span class="vr">id</span>: <span class="ty">number</span>) =>
+    <span class="fn">apiFetch</span>&lt;<span class="ty">any</span>&gt;(<span class="str">`/proxy/items/<span class="vr">${id}</span>`</span>),
+
+  <span class="fn">create</span>: (<span class="vr">data</span>: <span class="ty">Record</span>&lt;<span class="ty">string</span>, <span class="ty">unknown</span>&gt;) =>
+    <span class="fn">apiFetch</span>(<span class="str">'/proxy/items'</span>, {
+      <span class="pr">method</span>: <span class="str">'POST'</span>,
+      <span class="pr">body</span>: <span class="ty">JSON</span>.<span class="fn">stringify</span>(<span class="vr">data</span>),
+    }),
+
+  <span class="fn">update</span>: (<span class="vr">id</span>: <span class="ty">number</span>, <span class="vr">data</span>: <span class="ty">Record</span>&lt;<span class="ty">string</span>, <span class="ty">unknown</span>&gt;) =>
+    <span class="fn">apiFetch</span>(<span class="str">`/proxy/items/<span class="vr">${id}</span>`</span>, {
+      <span class="pr">method</span>: <span class="str">'PUT'</span>,
+      <span class="pr">body</span>: <span class="ty">JSON</span>.<span class="fn">stringify</span>(<span class="vr">data</span>),
+    }),
+
+  <span class="fn">remove</span>: (<span class="vr">id</span>: <span class="ty">number</span>) =>
+    <span class="fn">apiFetch</span>(<span class="str">`/proxy/items/<span class="vr">${id}</span>`</span>, {
+      <span class="pr">method</span>: <span class="str">'DELETE'</span>,
+    }),
+};
+</pre></div>
+            </div>
+
+            <div class="annotation info">
+                <span class="ann-icon">💡</span>
+                <div>Nota que <strong>no hay tokens, API keys ni credenciales</strong> en ningún lugar del código frontend. Solo <code>credentials: 'include'</code> y el navegador se encarga de adjuntar la cookie.</div>
+            </div>
+        </div>
+
+        <!-- ===== SECTION 11: AUTH CONTEXT ===== -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-num">11</div>
+                <div class="section-title">Contexto de Autenticación</div>
+                <div class="section-desc">src/context/AuthContext.tsx</div>
+            </div>
+
+            <div class="code-block">
+                <div class="code-header">
+                    <div class="code-file">
+                        <div class="code-file-icon icon-ts">TS</div>
+                        <span class="code-filename">src/context/AuthContext.tsx</span>
+                    </div>
+                    <span class="code-lang">React TSX</span>
+                </div>
+                <div class="code-body"><pre>
+<span class="kw">import</span> { <span class="fn">createContext</span>, <span class="fn">useContext</span>, <span class="fn">useState</span>, <span class="fn">useEffect</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+<span class="kw">import</span> { <span class="vr">authApi</span> } <span class="kw">from</span> <span class="str">'../services/apiClient'</span>;
+
+<span class="kw">interface</span> <span class="ty">User</span> {
+  <span class="pr">id</span>: <span class="ty">number</span>;
+  <span class="pr">name</span>: <span class="ty">string</span>;
+  <span class="pr">role</span>: <span class="str">'admin'</span> | <span class="str">'editor'</span> | <span class="str">'viewer'</span>;
+}
+
+<span class="kw">interface</span> <span class="ty">AuthContextType</span> {
+  <span class="pr">user</span>: <span class="ty">User</span> | <span class="kw">null</span>;
+  <span class="pr">loading</span>: <span class="ty">boolean</span>;
+  <span class="fn">login</span>: (<span class="vr">email</span>: <span class="ty">string</span>, <span class="vr">password</span>: <span class="ty">string</span>) => <span class="ty">Promise</span>&lt;<span class="ty">void</span>&gt;;
+  <span class="fn">logout</span>: () => <span class="ty">Promise</span>&lt;<span class="ty">void</span>&gt;;
+}
+
+<span class="kw">const</span> <span class="vr">AuthContext</span> = <span class="fn">createContext</span>&lt;<span class="ty">AuthContextType</span>&gt;(<span class="kw">null</span>!);
+
+<span class="kw">export function</span> <span class="fn">AuthProvider</span>({ <span class="vr">children</span> }: { <span class="vr">children</span>: <span class="ty">React.ReactNode</span> }) {
+  <span class="kw">const</span> [<span class="vr">user</span>, <span class="fn">setUser</span>] = <span class="fn">useState</span>&lt;<span class="ty">User</span> | <span class="kw">null</span>&gt;(<span class="kw">null</span>);
+  <span class="kw">const</span> [<span class="vr">loading</span>, <span class="fn">setLoading</span>] = <span class="fn">useState</span>(<span class="kw">true</span>);
+
+  <span class="cm">// Al montar, verificar si ya hay sesión activa (cookie válida)</span>
+  <span class="fn">useEffect</span>(() => {
+    <span class="vr">authApi</span>.<span class="fn">me</span>()
+      .<span class="fn">then</span>((<span class="vr">res</span>) => <span class="fn">setUser</span>(<span class="vr">res</span>.<span class="pr">user</span>))
+      .<span class="fn">catch</span>(() => <span class="fn">setUser</span>(<span class="kw">null</span>))
+      .<span class="fn">finally</span>(() => <span class="fn">setLoading</span>(<span class="kw">false</span>));
+  }, []);
+
+  <span class="kw">const</span> <span class="fn">login</span> = <span class="kw">async</span> (<span class="vr">email</span>: <span class="ty">string</span>, <span class="vr">password</span>: <span class="ty">string</span>) => {
+    <span class="kw">const</span> <span class="vr">res</span> = <span class="kw">await</span> <span class="vr">authApi</span>.<span class="fn">login</span>(<span class="vr">email</span>, <span class="vr">password</span>);
+    <span class="fn">setUser</span>(<span class="vr">res</span>.<span class="pr">user</span>);  <span class="cm">// Cookie ya fue seteada por el backend</span>
+  };
+
+  <span class="kw">const</span> <span class="fn">logout</span> = <span class="kw">async</span> () => {
+    <span class="kw">await</span> <span class="vr">authApi</span>.<span class="fn">logout</span>();
+    <span class="fn">setUser</span>(<span class="kw">null</span>);
+  };
+
+  <span class="kw">return</span> (
+    <span class="tg">&lt;AuthContext.Provider</span> <span class="at">value</span>=<span class="str">{{ user, loading, login, logout }}</span><span class="tg">&gt;</span>
+      {<span class="vr">children</span>}
+    <span class="tg">&lt;/AuthContext.Provider&gt;</span>
+  );
+}
+
+<span class="kw">export const</span> <span class="fn">useAuth</span> = () => <span class="fn">useContext</span>(<span class="vr">AuthContext</span>);
+</pre></div>
+            </div>
+        </div>
+
+        <!-- ===== SECTION 12: LOGIN PAGE ===== -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-num">12</div>
+                <div class="section-title">Página de Login</div>
+                <div class="section-desc">src/pages/LoginPage.tsx</div>
+            </div>
+
+            <div class="code-block">
+                <div class="code-header">
+                    <div class="code-file">
+                        <div class="code-file-icon icon-ts">TS</div>
+                        <span class="code-filename">src/pages/LoginPage.tsx</span>
+                    </div>
+                    <span class="code-lang">React TSX</span>
+                </div>
+                <div class="code-body"><pre>
+<span class="kw">import</span> { <span class="fn">useState</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+<span class="kw">import</span> { <span class="fn">useAuth</span> } <span class="kw">from</span> <span class="str">'../context/AuthContext'</span>;
+<span class="kw">import</span> { <span class="fn">useNavigate</span> } <span class="kw">from</span> <span class="str">'react-router-dom'</span>;
+
+<span class="kw">export default function</span> <span class="fn">LoginPage</span>() {
+  <span class="kw">const</span> [<span class="vr">email</span>, <span class="fn">setEmail</span>]       = <span class="fn">useState</span>(<span class="str">''</span>);
+  <span class="kw">const</span> [<span class="vr">password</span>, <span class="fn">setPassword</span>] = <span class="fn">useState</span>(<span class="str">''</span>);
+  <span class="kw">const</span> [<span class="vr">error</span>, <span class="fn">setError</span>]       = <span class="fn">useState</span>(<span class="str">''</span>);
+  <span class="kw">const</span> [<span class="vr">loading</span>, <span class="fn">setLoading</span>]   = <span class="fn">useState</span>(<span class="kw">false</span>);
+  <span class="kw">const</span> { <span class="fn">login</span> } = <span class="fn">useAuth</span>();
+  <span class="kw">const</span> <span class="vr">navigate</span> = <span class="fn">useNavigate</span>();
+
+  <span class="kw">const</span> <span class="fn">handleSubmit</span> = <span class="kw">async</span> (<span class="vr">e</span>: <span class="ty">React.FormEvent</span>) => {
+    <span class="vr">e</span>.<span class="fn">preventDefault</span>();
+    <span class="fn">setError</span>(<span class="str">''</span>);
+    <span class="fn">setLoading</span>(<span class="kw">true</span>);
+
+    <span class="kw">try</span> {
+      <span class="kw">await</span> <span class="fn">login</span>(<span class="vr">email</span>, <span class="vr">password</span>);
+      <span class="fn">navigate</span>(<span class="str">'/dashboard'</span>);
+    } <span class="kw">catch</span> (<span class="vr">err</span>) {
+      <span class="fn">setError</span>(<span class="str">'Email o contraseña incorrectos'</span>);
+    } <span class="kw">finally</span> {
+      <span class="fn">setLoading</span>(<span class="kw">false</span>);
+    }
+  };
+
+  <span class="kw">return</span> (
+    <span class="tg">&lt;form</span> <span class="at">onSubmit</span>=<span class="str">{handleSubmit}</span><span class="tg">&gt;</span>
+      <span class="tg">&lt;h1&gt;</span>Iniciar Sesión<span class="tg">&lt;/h1&gt;</span>
+
+      {<span class="vr">error</span> && <span class="tg">&lt;div</span> <span class="at">className</span>=<span class="str">"error"</span><span class="tg">&gt;</span>{<span class="vr">error</span>}<span class="tg">&lt;/div&gt;</span>}
+
+      <span class="tg">&lt;input</span>
+        <span class="at">type</span>=<span class="str">"email"</span>
+        <span class="at">value</span>=<span class="str">{email}</span>
+        <span class="at">onChange</span>=<span class="str">{(e) => setEmail(e.target.value)}</span>
+        <span class="at">placeholder</span>=<span class="str">"Email"</span>
+        <span class="at">required</span>
+      <span class="tg">/&gt;</span>
+
+      <span class="tg">&lt;input</span>
+        <span class="at">type</span>=<span class="str">"password"</span>
+        <span class="at">value</span>=<span class="str">{password}</span>
+        <span class="at">onChange</span>=<span class="str">{(e) => setPassword(e.target.value)}</span>
+        <span class="at">placeholder</span>=<span class="str">"Contraseña"</span>
+        <span class="at">required</span>
+      <span class="tg">/&gt;</span>
+
+      <span class="tg">&lt;button</span> <span class="at">type</span>=<span class="str">"submit"</span> <span class="at">disabled</span>=<span class="str">{loading}</span><span class="tg">&gt;</span>
+        {<span class="vr">loading</span> ? <span class="str">'Ingresando...'</span> : <span class="str">'Ingresar'</span>}
+      <span class="tg">&lt;/button&gt;</span>
+    <span class="tg">&lt;/form&gt;</span>
+  );
+}
+</pre></div>
+            </div>
+        </div>
+
+        <!-- ===== SECTION 13: PROTECTED ROUTE ===== -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-num">13</div>
+                <div class="section-title">Ruta Protegida + Dashboard</div>
+                <div class="section-desc">src/components/ & src/pages/</div>
+            </div>
+
+            <div class="code-block">
+                <div class="code-header">
+                    <div class="code-file">
+                        <div class="code-file-icon icon-ts">TS</div>
+                        <span class="code-filename">src/components/ProtectedRoute.tsx</span>
+                    </div>
+                    <span class="code-lang">React TSX</span>
+                </div>
+                <div class="code-body"><pre>
+<span class="kw">import</span> { <span class="fn">Navigate</span> } <span class="kw">from</span> <span class="str">'react-router-dom'</span>;
+<span class="kw">import</span> { <span class="fn">useAuth</span> } <span class="kw">from</span> <span class="str">'../context/AuthContext'</span>;
+
+<span class="kw">interface</span> <span class="ty">Props</span> {
+  <span class="pr">children</span>: <span class="ty">React.ReactNode</span>;
+  <span class="pr">requiredRole</span>?: <span class="str">'admin'</span> | <span class="str">'editor'</span> | <span class="str">'viewer'</span>;
+}
+
+<span class="kw">export default function</span> <span class="fn">ProtectedRoute</span>({ <span class="vr">children</span>, <span class="vr">requiredRole</span> }: <span class="ty">Props</span>) {
+  <span class="kw">const</span> { <span class="vr">user</span>, <span class="vr">loading</span> } = <span class="fn">useAuth</span>();
+
+  <span class="kw">if</span> (<span class="vr">loading</span>) <span class="kw">return</span> <span class="tg">&lt;div&gt;</span>Cargando...<span class="tg">&lt;/div&gt;</span>;
+  <span class="kw">if</span> (!<span class="vr">user</span>)  <span class="kw">return</span> <span class="tg">&lt;Navigate</span> <span class="at">to</span>=<span class="str">"/login"</span> <span class="tg">/&gt;</span>;
+
+  <span class="cm">// Verificar rol si es necesario</span>
+  <span class="kw">if</span> (<span class="vr">requiredRole</span>) {
+    <span class="kw">const</span> <span class="vr">roles</span> = { <span class="pr">viewer</span>: <span class="num">1</span>, <span class="pr">editor</span>: <span class="num">2</span>, <span class="pr">admin</span>: <span class="num">3</span> };
+    <span class="kw">if</span> (<span class="vr">roles</span>[<span class="vr">user</span>.<span class="pr">role</span>] < <span class="vr">roles</span>[<span class="vr">requiredRole</span>]) {
+      <span class="kw">return</span> <span class="tg">&lt;div&gt;</span>No tienes permisos para esta sección<span class="tg">&lt;/div&gt;</span>;
+    }
+  }
+
+  <span class="kw">return</span> <span class="tg">&lt;&gt;</span>{<span class="vr">children</span>}<span class="tg">&lt;/&gt;</span>;
+}
+</pre></div>
+            </div>
+
+            <div class="code-block">
+                <div class="code-header">
+                    <div class="code-file">
+                        <div class="code-file-icon icon-ts">TS</div>
+                        <span class="code-filename">src/pages/Dashboard.tsx</span>
+                    </div>
+                    <span class="code-lang">React TSX</span>
+                </div>
+                <div class="code-body"><pre>
+<span class="kw">import</span> { <span class="fn">useState</span>, <span class="fn">useEffect</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+<span class="kw">import</span> { <span class="fn">useAuth</span> } <span class="kw">from</span> <span class="str">'../context/AuthContext'</span>;
+<span class="kw">import</span> { <span class="vr">itemsApi</span> } <span class="kw">from</span> <span class="str">'../services/apiClient'</span>;
+
+<span class="kw">export default function</span> <span class="fn">Dashboard</span>() {
+  <span class="kw">const</span> { <span class="vr">user</span>, <span class="fn">logout</span> } = <span class="fn">useAuth</span>();
+  <span class="kw">const</span> [<span class="vr">items</span>, <span class="fn">setItems</span>] = <span class="fn">useState</span>&lt;<span class="ty">any</span>[]&gt;([]);
+
+  <span class="fn">useEffect</span>(() => {
+    <span class="cm">// La cookie se envía automáticamente — sin tokens manuales</span>
+    <span class="vr">itemsApi</span>.<span class="fn">getAll</span>().<span class="fn">then</span>(<span class="fn">setItems</span>);
+  }, []);
+
+  <span class="kw">const</span> <span class="fn">handleDelete</span> = <span class="kw">async</span> (<span class="vr">id</span>: <span class="ty">number</span>) => {
+    <span class="kw">try</span> {
+      <span class="kw">await</span> <span class="vr">itemsApi</span>.<span class="fn">remove</span>(<span class="vr">id</span>);
+      <span class="fn">setItems</span>(<span class="vr">items</span>.<span class="fn">filter</span>(<span class="vr">i</span> => <span class="vr">i</span>.<span class="pr">id</span> !== <span class="vr">id</span>));
+    } <span class="kw">catch</span> (<span class="vr">err</span>) {
+      <span class="fn">alert</span>(<span class="str">'No tienes permisos para eliminar'</span>);
+    }
+  };
+
+  <span class="kw">return</span> (
+    <span class="tg">&lt;div&gt;</span>
+      <span class="tg">&lt;h1&gt;</span>Dashboard<span class="tg">&lt;/h1&gt;</span>
+      <span class="tg">&lt;p&gt;</span>Hola {<span class="vr">user</span>?.<span class="pr">name</span>} — Rol: {<span class="vr">user</span>?.<span class="pr">role</span>}<span class="tg">&lt;/p&gt;</span>
+      <span class="tg">&lt;button</span> <span class="at">onClick</span>=<span class="str">{logout}</span><span class="tg">&gt;</span>Cerrar sesión<span class="tg">&lt;/button&gt;</span>
+
+      {<span class="vr">items</span>.<span class="fn">map</span>(<span class="vr">item</span> => (
+        <span class="tg">&lt;div</span> <span class="at">key</span>=<span class="str">{item.id}</span><span class="tg">&gt;</span>
+          <span class="tg">&lt;span&gt;</span>{<span class="vr">item</span>.<span class="pr">name</span>}<span class="tg">&lt;/span&gt;</span>
+          {<span class="vr">user</span>?.<span class="pr">role</span> === <span class="str">'admin'</span> && (
+            <span class="tg">&lt;button</span> <span class="at">onClick</span>=<span class="str">{() => handleDelete(item.id)}</span><span class="tg">&gt;</span>
+              Eliminar
+            <span class="tg">&lt;/button&gt;</span>
+          )}
+        <span class="tg">&lt;/div&gt;</span>
+      ))}
+    <span class="tg">&lt;/div&gt;</span>
+  );
+}
+</pre></div>
+            </div>
+        </div>
+
+        <div class="flow-connector"><div class="flow-arrow"><span class="line"></span><span class="arrow-icon">▼</span><span>Frontend completo → Deploy con GitHub Actions</span><span class="arrow-icon">▼</span><span class="line"></span></div></div>
+
+        <!-- ===== SECTION 14: GITHUB ACTIONS ===== -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-num">14</div>
+                <div class="section-title">Deploy — GitHub Actions</div>
+                <div class="section-desc">.github/workflows/deploy.yml</div>
+            </div>
+
+            <div class="code-block">
+                <div class="code-header">
+                    <div class="code-file">
+                        <div class="code-file-icon icon-yaml">YM</div>
+                        <span class="code-filename">.github/workflows/deploy.yml</span>
+                    </div>
+                    <span class="code-lang">YAML</span>
+                </div>
+                <div class="code-body"><pre>
+<span class="pr">name</span>: <span class="str">Deploy to GitHub Pages</span>
+
+<span class="pr">on</span>:
+  <span class="pr">push</span>:
+    <span class="pr">branches</span>: [<span class="str">main</span>]
+
+<span class="pr">permissions</span>:
+  <span class="pr">contents</span>: <span class="str">read</span>
+  <span class="pr">pages</span>: <span class="str">write</span>
+  <span class="pr">id-token</span>: <span class="str">write</span>
+
+<span class="pr">jobs</span>:
+  <span class="pr">build-and-deploy</span>:
+    <span class="pr">runs-on</span>: <span class="str">ubuntu-latest</span>
+
+    <span class="pr">steps</span>:
+      - <span class="pr">uses</span>: <span class="str">actions/checkout@v4</span>
+
+      - <span class="pr">uses</span>: <span class="str">actions/setup-node@v4</span>
+        <span class="pr">with</span>:
+          <span class="pr">node-version</span>: <span class="num">20</span>
+          <span class="pr">cache</span>: <span class="str">'npm'</span>
+
+      - <span class="pr">run</span>: <span class="str">npm ci</span>
+
+      <span class="cm"># Build con la URL del proxy inyectada desde GitHub Secrets</span>
+      - <span class="pr">run</span>: <span class="str">npm run build</span>
+        <span class="pr">env</span>:
+          <span class="pr">VITE_API_BASE_URL</span>: <span class="str">${{ secrets.VITE_API_BASE_URL }}</span>
+          <span class="cm"># Solo la URL del proxy, NO credenciales de la API</span>
+
+      - <span class="pr">uses</span>: <span class="str">actions/upload-pages-artifact@v3</span>
+        <span class="pr">with</span>:
+          <span class="pr">path</span>: <span class="str">'./dist'</span>
+
+      - <span class="pr">uses</span>: <span class="str">actions/deploy-pages@v4</span>
+        <span class="pr">id</span>: <span class="str">deployment</span>
+</pre></div>
+            </div>
+
+            <div class="annotation success">
+                <span class="ann-icon">✅</span>
+                <div>El único secreto en GitHub Actions es <code>VITE_API_BASE_URL</code> (la URL de tu servidor Apache). Las credenciales de la API externa viven exclusivamente en el <code>.env</code> del servidor — nunca en el repositorio ni en el frontend.</div>
+            </div>
+        </div>
+
+        <!-- ===== SECTION 15: COMPOSER ===== -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-num">15</div>
+                <div class="section-title">Dependencia PHP — JWT</div>
+                <div class="section-desc">Instalar en el servidor</div>
+            </div>
+
+            <div class="code-block">
+                <div class="code-header">
+                    <div class="code-file">
+                        <div class="code-file-icon icon-env">$_</div>
+                        <span class="code-filename">Terminal del servidor</span>
+                    </div>
+                    <span class="code-lang">BASH</span>
+                </div>
+                <div class="code-body"><pre>
+<span class="cm"># Instalar la librería JWT en tu proyecto CodeIgniter</span>
+<span class="fn">composer</span> require firebase/php-jwt
+
+<span class="cm"># Generar un JWT_SECRET seguro</span>
+<span class="fn">openssl</span> rand -hex 64
+<span class="cm"># Copiar el resultado al .env como JWT_SECRET</span>
+</pre></div>
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>

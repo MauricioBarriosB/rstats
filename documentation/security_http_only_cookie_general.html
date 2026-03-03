@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arquitectura de Seguridad — SPA + CodeIgniter 4 Proxy</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0e17;
+            --surface: #111827;
+            --surface-alt: #1a2234;
+            --border: #1e2d45;
+            --border-accent: #2a3f5f;
+            --text: #e2e8f0;
+            --text-muted: #8494a7;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --accent-green: #10b981;
+            --accent-orange: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-purple: #8b5cf6;
+            --accent-pink: #ec4899;
+            --glow-blue: rgba(59, 130, 246, 0.15);
+            --glow-green: rgba(16, 185, 129, 0.15);
+            --glow-orange: rgba(245, 158, 11, 0.15);
+            --glow-red: rgba(239, 68, 68, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 24px 60px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        header h1 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* =========== FLOW DIAGRAM =========== */
+        .flow-section {
+            margin-bottom: 56px;
+        }
+
+        .section-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent-cyan);
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, var(--border-accent), transparent);
+        }
+
+        /* Main architecture flow */
+        .arch-flow {
+            display: flex;
+            align-items: stretch;
+            gap: 0;
+            overflow-x: auto;
+            padding: 16px 0;
+        }
+
+        .arch-node {
+            flex: 1;
+            min-width: 220px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px 20px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .arch-node:hover {
+            border-color: var(--border-accent);
+            transform: translateY(-2px);
+        }
+
+        .arch-node.frontend { border-top: 3px solid var(--accent-blue); }
+        .arch-node.proxy { border-top: 3px solid var(--accent-green); }
+        .arch-node.security { border-top: 3px solid var(--accent-orange); }
+        .arch-node.api { border-top: 3px solid var(--accent-purple); }
+        .arch-node.db { border-top: 3px solid var(--accent-pink); }
+
+        .node-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            margin-bottom: 14px;
+        }
+
+        .frontend .node-icon { background: var(--glow-blue); }
+        .proxy .node-icon { background: var(--glow-green); }
+        .security .node-icon { background: var(--glow-orange); }
+        .api .node-icon { background: rgba(139, 92, 246, 0.15); }
+        .db .node-icon { background: rgba(236, 72, 153, 0.15); }
+
+        .node-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-bottom: 4px;
+        }
+
+        .node-subtitle {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-bottom: 14px;
+        }
+
+        .node-details {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .node-details li {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            padding-left: 16px;
+            position: relative;
+            line-height: 1.5;
+        }
+
+        .node-details li::before {
+            content: '›';
+            position: absolute;
+            left: 2px;
+            color: var(--accent-cyan);
+            font-weight: 700;
+        }
+
+        /* Connector arrows */
+        .arch-connector {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 64px;
+            position: relative;
+        }
+
+        .arrow-line {
+            width: 40px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--border-accent), var(--accent-cyan), var(--border-accent));
+            position: relative;
+        }
+
+        .arrow-line::after {
+            content: '';
+            position: absolute;
+            right: -6px;
+            top: -4px;
+            border: 5px solid transparent;
+            border-left-color: var(--accent-cyan);
+        }
+
+        .arrow-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            color: var(--accent-cyan);
+            white-space: nowrap;
+            margin-top: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* =========== AUTH FLOW =========== */
+        .auth-flow-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 56px;
+        }
+
+        .flow-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 28px 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .flow-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+        }
+
+        .flow-card.login-flow::before { background: linear-gradient(90deg, transparent, var(--accent-green), transparent); }
+        .flow-card.request-flow::before { background: linear-gradient(90deg, transparent, var(--accent-blue), transparent); }
+
+        .flow-card-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .flow-card.login-flow .flow-card-title { color: var(--accent-green); }
+        .flow-card.request-flow .flow-card-title { color: var(--accent-blue); }
+
+        .flow-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .flow-step {
+            display: flex;
+            gap: 14px;
+            position: relative;
+        }
+
+        .step-line-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 28px;
+            flex-shrink: 0;
+        }
+
+        .step-number {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            font-weight: 700;
+            flex-shrink: 0;
+            z-index: 1;
+        }
+
+        .login-flow .step-number {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .request-flow .step-number {
+            background: var(--glow-blue);
+            color: var(--accent-blue);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .step-line {
+            width: 1px;
+            flex: 1;
+            min-height: 12px;
+        }
+
+        .login-flow .step-line { background: rgba(16, 185, 129, 0.2); }
+        .request-flow .step-line { background: rgba(59, 130, 246, 0.2); }
+
+        .step-content {
+            padding-bottom: 18px;
+            flex: 1;
+        }
+
+        .step-content h4 {
+            font-size: 0.82rem;
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .step-content p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .code-inline {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--accent-cyan);
+            padding: 1px 6px;
+            border-radius: 4px;
+            border: 1px solid rgba(59, 130, 246, 0.15);
+        }
+
+        /* =========== SECURITY LAYERS =========== */
+        .security-layers {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            margin-bottom: 56px;
+        }
+
+        .sec-layer {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 18px 24px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .sec-layer:first-child { border-radius: 12px 12px 0 0; }
+        .sec-layer:last-child { border-radius: 0 0 12px 12px; }
+        .sec-layer + .sec-layer { border-top: none; }
+
+        .sec-layer:hover {
+            background: var(--surface-alt);
+        }
+
+        .sec-badge {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .sec-layer:nth-child(1) .sec-badge { background: rgba(59, 130, 246, 0.12); }
+        .sec-layer:nth-child(2) .sec-badge { background: rgba(6, 182, 212, 0.12); }
+        .sec-layer:nth-child(3) .sec-badge { background: rgba(16, 185, 129, 0.12); }
+        .sec-layer:nth-child(4) .sec-badge { background: rgba(245, 158, 11, 0.12); }
+        .sec-layer:nth-child(5) .sec-badge { background: rgba(239, 68, 68, 0.12); }
+
+        .sec-info { flex: 1; }
+
+        .sec-info h4 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .sec-info p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .sec-status {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            padding: 4px 10px;
+            border-radius: 6px;
+            white-space: nowrap;
+        }
+
+        .status-pass {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--accent-green);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .status-fail {
+            background: var(--glow-red);
+            color: var(--accent-red);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        /* =========== COOKIE DETAIL =========== */
+        .cookie-detail {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 28px 24px;
+            margin-bottom: 56px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cookie-detail::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent-orange), transparent);
+        }
+
+        .cookie-detail .flow-card-title {
+            color: var(--accent-orange);
+        }
+
+        .cookie-props {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .cookie-prop {
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .cookie-prop-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .prop-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+        }
+
+        .prop-dot.critical { background: var(--accent-red); box-shadow: 0 0 6px var(--accent-red); }
+        .prop-dot.important { background: var(--accent-orange); box-shadow: 0 0 6px var(--accent-orange); }
+        .prop-dot.good { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
+
+        .cookie-prop-val {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--accent-cyan);
+            margin-bottom: 6px;
+        }
+
+        .cookie-prop-desc {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* =========== TECH STACK =========== */
+        .tech-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .tech-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .tech-card h3 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tech-card.fe h3 { color: var(--accent-blue); }
+        .tech-card.be h3 { color: var(--accent-green); }
+
+        .tech-items {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .tech-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: var(--surface-alt);
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        .tech-item-label {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        .tech-item-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        /* =========== ATTACK VECTORS =========== */
+        .attack-section {
+            margin-bottom: 40px;
+        }
+
+        .attack-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .attack-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+            display: flex;
+            gap: 14px;
+        }
+
+        .attack-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 1rem;
+        }
+
+        .attack-card.blocked .attack-icon {
+            background: rgba(16, 185, 129, 0.12);
+        }
+
+        .attack-info h4 {
+            font-size: 0.82rem;
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .attack-info p {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .attack-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-top: 6px;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--accent-green);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .arch-flow { flex-direction: column; align-items: stretch; }
+            .arch-connector {
+                flex-direction: row;
+                min-width: unset;
+                min-height: 40px;
+                justify-content: flex-start;
+                padding-left: 40px;
+            }
+            .arrow-line {
+                width: 2px;
+                height: 24px;
+            }
+            .arrow-line::after {
+                right: -4px;
+                top: unset;
+                bottom: -6px;
+                border: 5px solid transparent;
+                border-top-color: var(--accent-cyan);
+                border-left-color: transparent;
+            }
+            .auth-flow-grid { grid-template-columns: 1fr; }
+            .tech-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="container">
+        <header>
+            <h1>⟨ Arquitectura de Seguridad SPA + API Proxy ⟩</h1>
+            <p>React (GitHub Pages) → CodeIgniter 4 (Apache) → API Externa</p>
+        </header>
+
+        <!-- ===== MAIN ARCHITECTURE ===== -->
+        <div class="flow-section">
+            <div class="section-title">01 — Arquitectura General</div>
+            <div class="arch-flow">
+                <div class="arch-node frontend">
+                    <div class="node-icon">⚛</div>
+                    <div class="node-title">Frontend SPA</div>
+                    <div class="node-subtitle">GitHub Pages</div>
+                    <ul class="node-details">
+                        <li>React 19 + TypeScript</li>
+                        <li>Build: GitHub Actions</li>
+                        <li>Sin credenciales en JS</li>
+                        <li>fetch con credentials: 'include'</li>
+                        <li>Login form → recibe cookie</li>
+                    </ul>
+                </div>
+
+                <div class="arch-connector">
+                    <div class="arrow-line"></div>
+                    <div class="arrow-label">HTTPS + Cookie</div>
+                </div>
+
+                <div class="arch-node security">
+                    <div class="node-icon">🛡</div>
+                    <div class="node-title">Capa de Seguridad</div>
+                    <div class="node-subtitle">Filtros CodeIgniter 4</div>
+                    <ul class="node-details">
+                        <li>CORS con Allow-Credentials</li>
+                        <li>Validación de origen</li>
+                        <li>Extrae JWT de cookie HttpOnly</li>
+                        <li>Verifica firma y expiración</li>
+                        <li>Rate limiting por IP</li>
+                    </ul>
+                </div>
+
+                <div class="arch-connector">
+                    <div class="arrow-line"></div>
+                    <div class="arrow-label">JWT Válido</div>
+                </div>
+
+                <div class="arch-node proxy">
+                    <div class="node-icon">⟐</div>
+                    <div class="node-title">API Proxy</div>
+                    <div class="node-subtitle">CodeIgniter 4 Controller</div>
+                    <ul class="node-details">
+                        <li>Verifica rol del usuario</li>
+                        <li>Inyecta API Key privada</li>
+                        <li>CURLRequest a API externa</li>
+                        <li>Transforma respuesta</li>
+                        <li>Registra logs de auditoría</li>
+                    </ul>
+                </div>
+
+                <div class="arch-connector">
+                    <div class="arrow-line"></div>
+                    <div class="arrow-label">API Key Privada</div>
+                </div>
+
+                <div class="arch-node api">
+                    <div class="node-icon">☁</div>
+                    <div class="node-title">API Externa</div>
+                    <div class="node-subtitle">Servicio Protegido</div>
+                    <ul class="node-details">
+                        <li>Credenciales en .env del servidor</li>
+                        <li>Nunca expuestas al cliente</li>
+                        <li>GET / POST / PUT / DELETE</li>
+                        <li>Respuestas JSON</li>
+                    </ul>
+                </div>
+
+                <div class="arch-connector">
+                    <div class="arrow-line"></div>
+                    <div class="arrow-label">Auth / Query</div>
+                </div>
+
+                <div class="arch-node db">
+                    <div class="node-icon">◉</div>
+                    <div class="node-title">Base de Datos</div>
+                    <div class="node-subtitle">MySQL / PostgreSQL</div>
+                    <ul class="node-details">
+                        <li>Tabla users (id, email, password, role)</li>
+                        <li>Passwords con password_hash()</li>
+                        <li>Roles: admin, editor, viewer</li>
+                        <li>Logs de acceso</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== AUTH FLOWS ===== -->
+        <div class="section-title">02 — Flujos de Autenticación</div>
+        <div class="auth-flow-grid">
+            <!-- Login Flow -->
+            <div class="flow-card login-flow">
+                <div class="flow-card-title">
+                    <span>●</span> Flujo de Login
+                </div>
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <div class="step-line-area">
+                            <div class="step-number">1</div>
+                            <div class="step-line"></div>
+                        </div>
+                        <div class="step-content">
+                            <h4>Usuario envía credenciales</h4>
+                            <p><span class="code-inline">POST /auth/login</span> con email y password en JSON</p>
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="step-line-area">
+                            <div class="step-number">2</div>
+                            <div class="step-line"></div>
+                        </div>
+                        <div class="step-content">
+                            <h4>Backend valida credenciales</h4>
+                            <p>Busca user en DB, compara con <span class="code-inline">password_verify()</span></p>
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="step-line-area">
+                            <div class="step-number">3</div>
+                            <div class="step-line"></div>
+                        </div>
+                        <div class="step-content">
+                            <h4>Genera JWT con datos del usuario</h4>
+                            <p>Payload: <span class="code-inline">sub</span>, <span class="code-inline">role</span>, <span class="code-inline">exp</span> — firmado con JWT_SECRET</p>
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="step-line-area">
+                            <div class="step-number">4</div>
+                            <div class="step-line"></div>
+                        </div>
+                        <div class="step-content">
+                            <h4>Responde con cookie HttpOnly</h4>
+                            <p><span class="code-inline">Set-Cookie: auth_token=JWT; HttpOnly; Secure; SameSite=Strict</span></p>
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="step-line-area">
+                            <div class="step-number">5</div>
+                            <div class="step-line"></div>
+                        </div>
+                        <div class="step-content">
+                            <h4>Navegador almacena la cookie</h4>
+                            <p>Automático e invisible para JavaScript — imposible de leer con <span class="code-inline">document.cookie</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Request Flow -->
+            <div class="flow-card request-flow">
+                <div class="flow-card-title">
+                    <span>●</span> Flujo de Request Protegido
+                </div>
+                <div class="flow-steps">
+                    <div class="flow-step">
+                        <div class="step-line-area">
+                            <div class="step-number">1</div>
+                            <div class="step-line"></div>
+                        </div>
+                        <div class="step-content">
+                            <h4>Frontend hace fetch con credentials</h4>
+                            <p><span class="code-inline">fetch(url, { credentials: 'include' })</span> — cookie viaja automáticamente</p>
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="step-line-area">
+                            <div class="step-number">2</div>
+                            <div class="step-line"></div>
+                        </div>
+                        <div class="step-content">
+                            <h4>Filtro CORS valida el origen</h4>
+                            <p>Solo acepta requests desde <span class="code-inline">tuusuario.github.io</span></p>
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="step-line-area">
+                            <div class="step-number">3</div>
+                            <div class="step-line"></div>
+                        </div>
+                        <div class="step-content">
+                            <h4>Filtro JWT extrae y valida token</h4>
+                            <p>Lee cookie → decodifica JWT → verifica firma y expiración</p>
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="step-line-area">
+                            <div class="step-number">4</div>
+                            <div class="step-line"></div>
+                        </div>
+                        <div class="step-content">
+                            <h4>Controlador verifica permisos</h4>
+                            <p>Según <span class="code-inline">$request->user->role</span> permite o bloquea la operación</p>
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="step-line-area">
+                            <div class="step-number">5</div>
+                            <div class="step-line"></div>
+                        </div>
+                        <div class="step-content">
+                            <h4>Proxy llama a API externa</h4>
+                            <p>Inyecta <span class="code-inline">API_KEY</span> del <span class="code-inline">.env</span> del servidor y reenvía la respuesta</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== SECURITY LAYERS ===== -->
+        <div class="flow-section">
+            <div class="section-title">03 — Capas de Seguridad (Pipeline de Validación)</div>
+            <div class="security-layers">
+                <div class="sec-layer">
+                    <div class="sec-badge">🌐</div>
+                    <div class="sec-info">
+                        <h4>Capa 1 — CORS + Validación de Origen</h4>
+                        <p>Access-Control-Allow-Origin: tu dominio exacto · Access-Control-Allow-Credentials: true</p>
+                    </div>
+                    <div class="sec-status status-fail">Falla → 403</div>
+                </div>
+                <div class="sec-layer">
+                    <div class="sec-badge">🍪</div>
+                    <div class="sec-info">
+                        <h4>Capa 2 — Cookie HttpOnly + Secure + SameSite</h4>
+                        <p>JavaScript no puede leer la cookie · Solo se envía por HTTPS · No se envía desde otros sitios</p>
+                    </div>
+                    <div class="sec-status status-fail">Falla → 401</div>
+                </div>
+                <div class="sec-layer">
+                    <div class="sec-badge">🔑</div>
+                    <div class="sec-info">
+                        <h4>Capa 3 — JWT Válido (firma + expiración)</h4>
+                        <p>firebase/php-jwt verifica con JWT_SECRET del servidor · Token expira en 1h</p>
+                    </div>
+                    <div class="sec-status status-fail">Falla → 401</div>
+                </div>
+                <div class="sec-layer">
+                    <div class="sec-badge">👤</div>
+                    <div class="sec-info">
+                        <h4>Capa 4 — Control de Roles (RBAC)</h4>
+                        <p>admin: CRUD completo · editor: crear y editar · viewer: solo lectura</p>
+                    </div>
+                    <div class="sec-status status-fail">Falla → 403</div>
+                </div>
+                <div class="sec-layer">
+                    <div class="sec-badge">⏱</div>
+                    <div class="sec-info">
+                        <h4>Capa 5 — Rate Limiting por IP</h4>
+                        <p>CodeIgniter Throttler · Máx 60 req/minuto por IP</p>
+                    </div>
+                    <div class="sec-status status-fail">Falla → 429</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== COOKIE PROPERTIES ===== -->
+        <div class="flow-section">
+            <div class="section-title">04 — Propiedades de la Cookie</div>
+            <div class="cookie-detail">
+                <div class="flow-card-title">
+                    <span>🍪</span> Set-Cookie: auth_token
+                </div>
+                <div class="cookie-props">
+                    <div class="cookie-prop">
+                        <div class="cookie-prop-name"><span class="prop-dot critical"></span> httponly = true</div>
+                        <div class="cookie-prop-val">HttpOnly</div>
+                        <div class="cookie-prop-desc">JavaScript no puede acceder a la cookie. Bloquea robo por XSS vía document.cookie o localStorage.</div>
+                    </div>
+                    <div class="cookie-prop">
+                        <div class="cookie-prop-name"><span class="prop-dot critical"></span> secure = true</div>
+                        <div class="cookie-prop-val">Secure</div>
+                        <div class="cookie-prop-desc">Solo se transmite por HTTPS. Previene interceptación en redes inseguras (man-in-the-middle).</div>
+                    </div>
+                    <div class="cookie-prop">
+                        <div class="cookie-prop-name"><span class="prop-dot important"></span> samesite = Strict</div>
+                        <div class="cookie-prop-val">SameSite=Strict</div>
+                        <div class="cookie-prop-desc">No se envía en requests cross-site. Bloquea ataques CSRF desde sitios maliciosos.</div>
+                    </div>
+                    <div class="cookie-prop">
+                        <div class="cookie-prop-name"><span class="prop-dot good"></span> expire = 3600</div>
+                        <div class="cookie-prop-val">Max-Age: 1 hora</div>
+                        <div class="cookie-prop-desc">Token de corta duración. Si se compromete, la ventana de exposición es limitada.</div>
+                    </div>
+                    <div class="cookie-prop">
+                        <div class="cookie-prop-name"><span class="prop-dot good"></span> path = /</div>
+                        <div class="cookie-prop-val">Path: /</div>
+                        <div class="cookie-prop-desc">Disponible para todas las rutas del backend proxy.</div>
+                    </div>
+                    <div class="cookie-prop">
+                        <div class="cookie-prop-name"><span class="prop-dot important"></span> domain</div>
+                        <div class="cookie-prop-val">tu-servidor.com</div>
+                        <div class="cookie-prop-desc">Cookie asociada exclusivamente al dominio de tu servidor Apache.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== ATTACK VECTORS ===== -->
+        <div class="flow-section attack-section">
+            <div class="section-title">05 — Vectores de Ataque Bloqueados</div>
+            <div class="attack-grid">
+                <div class="attack-card blocked">
+                    <div class="attack-icon">🛡</div>
+                    <div class="attack-info">
+                        <h4>XSS (Cross-Site Scripting)</h4>
+                        <p>Aunque inyecten JS malicioso, no pueden leer la cookie HttpOnly ni enviarla a otro servidor.</p>
+                        <span class="attack-tag">BLOQUEADO POR HttpOnly</span>
+                    </div>
+                </div>
+                <div class="attack-card blocked">
+                    <div class="attack-icon">🛡</div>
+                    <div class="attack-info">
+                        <h4>CSRF (Cross-Site Request Forgery)</h4>
+                        <p>SameSite=Strict impide que la cookie se envíe desde formularios o links en otros sitios.</p>
+                        <span class="attack-tag">BLOQUEADO POR SameSite</span>
+                    </div>
+                </div>
+                <div class="attack-card blocked">
+                    <div class="attack-icon">🛡</div>
+                    <div class="attack-info">
+                        <h4>Inspección de JS (DevTools)</h4>
+                        <p>No hay tokens, API keys, ni credenciales en el código JavaScript del frontend.</p>
+                        <span class="attack-tag">BLOQUEADO POR DISEÑO</span>
+                    </div>
+                </div>
+                <div class="attack-card blocked">
+                    <div class="attack-icon">🛡</div>
+                    <div class="attack-info">
+                        <h4>Postman / cURL sin sesión</h4>
+                        <p>Sin login válido no hay cookie JWT. Sin cookie, el proxy responde 401.</p>
+                        <span class="attack-tag">BLOQUEADO POR JWT + Cookie</span>
+                    </div>
+                </div>
+                <div class="attack-card blocked">
+                    <div class="attack-icon">🛡</div>
+                    <div class="attack-info">
+                        <h4>Fuerza bruta de login</h4>
+                        <p>Rate limiting bloquea IPs con demasiados intentos. Passwords hasheados con bcrypt.</p>
+                        <span class="attack-tag">BLOQUEADO POR Rate Limit</span>
+                    </div>
+                </div>
+                <div class="attack-card blocked">
+                    <div class="attack-icon">🛡</div>
+                    <div class="attack-info">
+                        <h4>Man-in-the-Middle</h4>
+                        <p>Cookie Secure solo viaja por HTTPS. Imposible interceptar en redes públicas.</p>
+                        <span class="attack-tag">BLOQUEADO POR Secure + HTTPS</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== TECH STACK ===== -->
+        <div class="flow-section">
+            <div class="section-title">06 — Stack Tecnológico</div>
+            <div class="tech-grid">
+                <div class="tech-card fe">
+                    <h3><span>⚛</span> Frontend — GitHub Pages</h3>
+                    <div class="tech-items">
+                        <div class="tech-item">
+                            <span class="tech-item-label">Framework</span>
+                            <span class="tech-item-value">React 19 + TypeScript</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-item-label">Build</span>
+                            <span class="tech-item-value">Vite + GitHub Actions</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-item-label">Deploy</span>
+                            <span class="tech-item-value">GitHub Pages (estático)</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-item-label">Auth</span>
+                            <span class="tech-item-value">Cookie automática (credentials: include)</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-item-label">Secrets</span>
+                            <span class="tech-item-value">Ninguno en el cliente</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="tech-card be">
+                    <h3><span>⟐</span> Backend — Apache Server</h3>
+                    <div class="tech-items">
+                        <div class="tech-item">
+                            <span class="tech-item-label">Framework</span>
+                            <span class="tech-item-value">CodeIgniter 4</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-item-label">Servidor</span>
+                            <span class="tech-item-value">Apache + PHP 8.x</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-item-label">JWT</span>
+                            <span class="tech-item-value">firebase/php-jwt</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-item-label">HTTP Client</span>
+                            <span class="tech-item-value">CURLRequest (CI4 built-in)</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-item-label">Secrets</span>
+                            <span class="tech-item-value">.env (JWT_SECRET, API_KEY)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
