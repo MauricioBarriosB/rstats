@@ -24,6 +24,7 @@ export default function Routes() {
   const [routeStartTime, setRouteStartTime] = useState<string | null>(null);
   const [routeLabel, setRouteLabel] = useState("");
   const [pendingLabel, setPendingLabel] = useState("");
+  const [isFinishing, setIsFinishing] = useState(false);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const {
     isOpen: isFinishOpen,
@@ -67,6 +68,7 @@ export default function Routes() {
 
   // Finish tracking route
   const handleFinishRoute = async () => {
+    setIsFinishing(true);
     await gps.stopTracking();
 
     // Release wake lock
@@ -97,6 +99,7 @@ export default function Routes() {
     setRouteStartTime(null);
     setRouteLabel("");
     gps.reset();
+    setIsFinishing(false);
   };
 
   const lastPoint = gps.trackPoints.at(-1);
@@ -138,7 +141,7 @@ export default function Routes() {
           size="lg"
           startContent={<Square size={20} />}
           onPress={onFinishOpen}
-          isDisabled={!isActive}
+          isDisabled={!isActive || isFinishing}
           className="font-semibold"
         >
           Finish Route
