@@ -141,7 +141,7 @@ export default function Routes() {
           size="lg"
           startContent={<Square size={20} />}
           onPress={onFinishOpen}
-          isDisabled={!isActive || isFinishing}
+          isDisabled={gps.status !== "tracking" || isFinishing}
           className="font-semibold"
         >
           Finish Route
