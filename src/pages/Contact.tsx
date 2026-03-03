@@ -13,6 +13,9 @@ export default function Contact() {
         <p className="text-lg text-default-600 font-normal">
           Get in touch with our team. We're here to help you with any questions or concerns.
         </p>
+                <p className="text-lg text-default-500 font-light">
+        This feature will be available soon.
+        </p>
       </div>
     </div>
   );

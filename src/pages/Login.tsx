@@ -13,6 +13,9 @@ export default function Login() {
         <p className="text-lg text-default-600 font-normal">
           Sign in to your account to access all features and manage your data.
         </p>
+        <p className="text-lg text-default-500 font-light">
+        This feature will be available soon.
+        </p>
       </div>
     </div>
   );

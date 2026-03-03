@@ -218,7 +218,7 @@ export default function Routes() {
           <ModalBody>
             <Input
               label="Enter your journey label"
-              placeholder="e.g., Morning commute, Park walk..."
+              placeholder="e.g., Route to work, Morning commute..."
               value={pendingLabel}
               onValueChange={setPendingLabel}
               autoFocus

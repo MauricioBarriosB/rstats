@@ -9,6 +9,7 @@ import {
 } from "@heroui/react";
 
 import {
+  Home,
   Route,
   Menu,
   X,
@@ -18,28 +19,23 @@ import {
 /*
 // Update to get navigation pages
 import {
-  Home,
   Users,
-  Route,
   BarChart3,
   UserCircle,
   Mail,
-  Menu,
-  X,
-  MapPin,
 } from "lucide-react";
 
 const navItems = [
-  { name: "Home", href: "/home", icon: Home },
   { name: "User Data", href: "/userdata", icon: Users },
-  { name: "Routes", href: "/routes", icon: MapPin },
   { name: "Statistics", href: "/statistics", icon: BarChart3 },
   { name: "Account", href: "/useraccount", icon: UserCircle },
   { name: "Contact", href: "/contact", icon: Mail },
 ];
 */
 const navItems = [
+  { name: "Home", href: "/home", icon: Home },
   { name: "Routes", href: "/routes", icon: MapPin },
+
 ];
 
 interface LayoutProps {
@@ -53,7 +49,7 @@ export default function Layout({ children }: LayoutProps) {
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
   const isRouteActive = (href: string, isActive: boolean) => {
-    if (href === "/routes") {
+    if (href === "/home") {
       return isActive || location.pathname === "/";
     }
     return isActive;
