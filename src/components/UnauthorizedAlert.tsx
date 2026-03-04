@@ -1,6 +1,16 @@
+import { useState, useEffect } from "react";
 import { Card, CardBody } from "@heroui/react";
 
-export default function UnauthorizedAlert() {
+export default function UnauthorizedAlert({ delay = 500 }: Readonly<{ delay?: number }>) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setVisible(true), delay);
+    return () => clearTimeout(timer);
+  }, [delay]);
+
+  if (!visible) return null;
+
   return (
     <div className="max-w-7xl mx-auto">
       <Card className="bg-warning-50 border border-warning-300">
