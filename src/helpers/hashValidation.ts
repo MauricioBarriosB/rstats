@@ -3,10 +3,8 @@
  * Uses environment variables for key generation
  * Includes app key validation to prevent unauthorized compilation
  */
-
 const getSecurityKeys = () => ({
   apiKey: import.meta.env.VITE_RSTATS_API_KEY || "",
-  apiHash: import.meta.env.VITE_RSTATS_API_HASH || "",
   apiSalt: import.meta.env.VITE_RSTATS_API_SALT || "",
   validationHash: import.meta.env.VITE_RSTATS_VALIDATION_HASH || "",
   validationPhrase: import.meta.env.VITE_RSTATS_VALIDATION_PHRASE || "",
@@ -24,11 +22,20 @@ async function computeSHA256(data: string): Promise<string> {
 }
 
 /**
+ * Derive apiHash from apiKey and apiSalt
+ */
+async function deriveApiHash(): Promise<string> {
+  const { apiKey, apiSalt } = getSecurityKeys();
+  return computeSHA256(`${apiKey}:${apiSalt}`);
+}
+
+/**
  * Generate the expected validation hash from current keys
  * This must match the stored VITE_RSTATS_VALIDATION_HASH
  */
 async function computeValidationHash(): Promise<string> {
-  const { apiKey, apiHash, apiSalt, validationPhrase } = getSecurityKeys();
+  const { apiKey, apiSalt, validationPhrase } = getSecurityKeys();
+  const apiHash = await deriveApiHash();
   const combined = `${validationPhrase}:${apiKey}:${apiHash}:${apiSalt}`;
   return computeSHA256(combined);
 }
@@ -38,9 +45,9 @@ async function computeValidationHash(): Promise<string> {
  * Returns true only if the keys match the pre-computed validation hash
  */
 export async function validateAppKeys(): Promise<boolean> {
-  const { apiKey, apiHash, apiSalt, validationHash, validationPhrase } = getSecurityKeys();
+  const { apiKey, apiSalt, validationHash, validationPhrase } = getSecurityKeys();
   // All keys must be present
-  if (!apiKey || !apiHash || !apiSalt || !validationHash || !validationPhrase) {
+  if (!apiKey || !apiSalt || !validationHash || !validationPhrase) {
     console.error("Missing required security keys");
     return false;
   }
@@ -58,7 +65,8 @@ export async function validateAppKeys(): Promise<boolean> {
  * Generate a hash signature for the given data
  */
 export async function generateHash(data: string): Promise<string> {
-  const { apiKey, apiHash, apiSalt } = getSecurityKeys();
+  const { apiKey, apiSalt } = getSecurityKeys();
+  const apiHash = await deriveApiHash();
   const combined = `${apiSalt}${data}${apiKey}${apiHash}`;
   return computeSHA256(combined);
 }
@@ -75,6 +83,6 @@ export async function validateHash(data: string, storedHash: string): Promise<bo
  * Check if security keys are configured
  */
 export function areSecurityKeysConfigured(): boolean {
-  const { apiKey, apiHash, apiSalt, validationHash, validationPhrase } = getSecurityKeys();
-  return Boolean(apiKey && apiHash && apiSalt && validationHash && validationPhrase);
+  const { apiKey, apiSalt, validationHash, validationPhrase } = getSecurityKeys();
+  return Boolean(apiKey && apiSalt && validationHash && validationPhrase);
 }

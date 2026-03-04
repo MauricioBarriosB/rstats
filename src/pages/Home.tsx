@@ -14,6 +14,8 @@ import {
   Clock,
   Route,
 } from "lucide-react";
+import UnauthorizedAlert from "../components/UnauthorizedAlert";
+import { useRouteStorage } from "../hooks";
 
 const features = [
   {
@@ -94,6 +96,10 @@ const howItWorks = [
 ];
 
 export default function Home() {
+  const { isAuthorized } = useRouteStorage();
+
+  if (!isAuthorized) return <UnauthorizedAlert />;
+
   return (
     <div className="max-w-7xl mx-auto">
       {/* Hero Section */}

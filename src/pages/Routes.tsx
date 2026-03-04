@@ -16,6 +16,7 @@ import { formatDistance, formatDuration } from "../helpers/RoutesCalculations";
 import { type RouteData } from "../helpers/RoutesStorage";
 import SavedRoutes from "../components/SavedRoutes";
 import { useWakeLock, useGpsTracker, useRouteStorage } from "../hooks";
+import UnauthorizedAlert from "../components/UnauthorizedAlert";
 
 export default function Routes() {
   const [routeStartTime, setRouteStartTime] = useState<string | null>(null);
@@ -97,6 +98,8 @@ export default function Routes() {
 
   const lastPoint = gps.trackPoints.at(-1);
 
+  if (!isAuthorized) return <UnauthorizedAlert />;
+
   return (
     <div className="max-w-7xl mx-auto">
       <div className="mb-10">
@@ -110,24 +113,6 @@ export default function Routes() {
           Track your journey using GPS. Start tracking to record your route and measure the distance covered.
         </p>
       </div>
-
-      {/* Unauthorized Alert Banner */}
-      {!isAuthorized && (
-        <Card className="mb-6 bg-warning-50 border border-warning-300">
-          <CardBody className="flex flex-row items-center gap-3">
-            <div className="shrink-0 w-10 h-10 bg-warning-200 rounded-full flex items-center justify-center">
-              <span className="text-warning-700 text-xl">⚠</span>
-            </div>
-            <div>
-              <p className="font-semibold text-warning-800">Unauthorized Application</p>
-              <p className="text-sm text-warning-700">
-                This application deployment is not authorized.
-              </p>
-            </div>
-          </CardBody>
-        </Card>
-      )}
-
       {/* Control Buttons */}
       <div className="flex gap-4 mb-8">
         <Button
