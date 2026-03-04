@@ -133,7 +133,7 @@ export default function Layout({ children }: LayoutProps) {
       {/* Footer */}
       <footer className="border-t border-default-100 py-6 px-8">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-default-600">© 2024 BC Stats. All rights reserved.</p>
+          <p className="text-sm text-default-600">© {new Date().getFullYear()} RStats. All rights reserved.</p>
           <div className="flex gap-6">
             <NavLink to="/contact" className="text-sm text-default-600 hover:text-foreground">
               Contact
